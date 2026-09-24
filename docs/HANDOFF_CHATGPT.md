@@ -3,7 +3,8 @@
 *Written by the owner with ChatGPT and added here unchanged. **Where it disagrees with
 `CLAUDE.md` in this repository, `CLAUDE.md` wins.** In particular, `CLAUDE.md` explains how
 "do not start over" applies to this repository: new code, but the same requirements and
-decisions.*
+decisions. And unlike what this text says about not redesigning, the owner now wants to see
+**what Sonnet designs on its own**, using the existing apps as benchmarks to check against.*
 
 ---
 

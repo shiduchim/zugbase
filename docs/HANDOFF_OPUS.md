@@ -8,8 +8,12 @@
 >   as read-only references".
 > - Its §0 prompt is replaced by `CLAUDE.md` in this repository.
 >
-> Everything else holds: PeerMatch's features, the owner's choices, the architecture, the
-> mistakes to avoid, and the measured sizes.
+> - **The look is no longer copied.** The owner wants to see what the new builder designs on its
+>   own. Wherever this document says "copy PeerMatch exactly" or "measure and match", read it as
+>   a benchmark to check against, not a rule (see `CLAUDE.md`).
+>
+> Everything else holds: PeerMatch's features, the owner's choices, the architecture, and the
+> mistakes to avoid.
 
 
 Written 2026-09-24, at the end of a long build session, for the next builder (for example a new

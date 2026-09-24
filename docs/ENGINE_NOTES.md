@@ -7,8 +7,10 @@ studied PeerMatch's 75 scripts (`shiduchim/match`).
   (`REBUILD_PLAN.md`).
 - **These notes say how to build each part so it stays fast, safe and easy to change.** For each
   part, the ZivugBase file that already solves it is named.
-- The owner asked for a clean start. Copying or adapting ZivugBase code is allowed where it fits
-  (same owner). Understand it first; don't paste it in blindly.
+- The owner asked for a clean start, and wants to see the new builder's own design and logic.
+  These are **pointers and lessons, not orders**. Better approaches are welcome if they keep the
+  data-safety rules. Copying or adapting ZivugBase code is allowed where it fits (same owner).
+  Understand it first; don't paste it in blindly.
 
 ---
 
@@ -144,12 +146,13 @@ v127.
 
 ---
 
-## 5. UI: build to PeerMatch's measurements
+## 5. UI lessons (the design itself is yours)
 
-- **Measure first.** Serve `shiduchim/match` locally and screenshot PeerMatch with made-up data
-  (`tools/peermatch-shots.spec.ts`). Screenshot the same screen in zugbase at 412 px, 2×, and
-  compare the two. Styling only came close once this was done. The measured sizes are in
-  `HANDOFF_OPUS.md` §7.
+- **Check your screens against the references.** Serve `shiduchim/match` locally and screenshot
+  PeerMatch with made-up data (`tools/peermatch-shots.spec.ts`). Screenshot the same screen in
+  zugbase at 412 px, 2×, and compare them for density, clarity and taps. ZivugBase's first
+  attempts felt bulky next to PeerMatch; the comparison made that obvious. PeerMatch's sizes are
+  in `HANDOFF_OPUS.md` §7 as a baseline.
 - Keep sizes in **px**, defined once as tokens.
 - **Keep class names unique per component.** A quick-details box used class `quick`, which Home
   already used as a 4-column grid.
@@ -158,10 +161,9 @@ v127.
   Paste button inside the Profile label.
 - **Read stored settings as strings.** `Number(localStorage.getItem(x))` is `0` when nothing is
   stored, which silently chose the wrong zoom level.
-- Detail pages and forms act like PeerMatch's sheets: no tabs at the bottom, a round back button,
-  a fixed note bar or Save bar at the bottom, and toasts placed above those bars.
-- PeerMatch's icons (mic, send, stop, back) are small SVGs in `history-composer-v36.js`. ZivugBase
-  copied them to `src/ui/parts/Icons.tsx`.
+- The owner liked PeerMatch's pinned round back arrow, the WhatsApp-style note bar with a mic at
+  the bottom of a person's page, and its small SVG icons (`history-composer-v36.js`). These are
+  ideas, not requirements. If there's a fixed bar at the bottom, keep toasts above it.
 
 ---
 
