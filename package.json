@@ -1,0 +1,29 @@
+{
+  "name": "zugbase",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Private shidduch organizer. Everything stays on your device.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run",
+    "privacy": "node scripts/privacy-check.mjs",
+    "check": "npm run typecheck && npm run test && npm run privacy"
+  },
+  "dependencies": {
+    "@preact/signals": "2.11.2",
+    "dexie": "4.4.6",
+    "preact": "10.29.8"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "2.10.6",
+    "@types/node": "^22.20.4",
+    "fake-indexeddb": "6.2.5",
+    "typescript": "5.9.3",
+    "vite": "6.4.3",
+    "vitest": "3.2.7"
+  }
+}
