@@ -16,6 +16,7 @@
   "dependencies": {
     "@preact/signals": "2.11.2",
     "dexie": "4.4.6",
+    "fflate": "^0.8.3",
     "preact": "10.29.8"
   },
   "devDependencies": {

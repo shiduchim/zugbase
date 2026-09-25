@@ -31,6 +31,56 @@ export function SendIcon() {
   );
 }
 
+export function FolderIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.4a1.5 1.5 0 0 1 1.2.6l1 1.4h8.4A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function HomeIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M6 10v9h12v-9" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" />
+    </svg>
+  );
+}
+
+export function PeopleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.8" />
+      <path d="M3.5 19c.7-3.2 2.9-5 5.5-5s4.8 1.8 5.5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+      <circle cx="17" cy="9" r="2.4" stroke="currentColor" stroke-width="1.7" />
+      <path d="M15.2 19c.4-2.2 1.8-3.6 3.6-3.9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+    </svg>
+  );
+}
+
+export function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.9" />
+      <path d="m20 20-3.8-3.8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
+    </svg>
+  );
+}
+
+export function PlusIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+    </svg>
+  );
+}
+
 export function GearIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">

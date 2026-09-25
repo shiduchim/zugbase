@@ -1,11 +1,56 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { Person, Role } from '../../types';
-import { createPerson, getPerson, patch } from '../../repo';
+import { createPerson, getPerson, patch, searchAll } from '../../repo';
 import { guessFromText } from '../../lib/guess';
 import { closeTop, openPerson } from '../../state';
 import { Sheet } from '../parts/common';
+import { useLive } from '../../hooks';
 
 type Draft = Partial<Person>;
+
+function WhoSentIt(props: { value?: Person['cameFrom']; onChange: (v: Person['cameFrom']) => void }) {
+  const [query, setQuery] = useState(props.value?.name ?? '');
+  const [open, setOpen] = useState(false);
+  const results = useLive(() => searchAll(query), [query], [] as Person[]);
+
+  useEffect(() => {
+    if (props.value?.personId && !props.value.name) {
+      getPerson(props.value.personId).then((p) => p && setQuery(p.name));
+    }
+  }, [props.value?.personId]);
+
+  return (
+    <div style="position:relative">
+      <label>Who sent it</label>
+      <input
+        placeholder="Search anyone, or type a new name"
+        value={query}
+        onFocus={() => setOpen(true)}
+        onInput={(e) => {
+          setQuery(e.currentTarget.value);
+          props.onChange({ name: e.currentTarget.value });
+          setOpen(true);
+        }}
+      />
+      {open && query.trim() && results.length > 0 && (
+        <div class="kebab-menu" style="position:absolute;left:0;right:0;top:100%">
+          {results.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => {
+                setQuery(p.name);
+                props.onChange({ personId: p.id, name: p.name, phone: p.role === 'shadchan' ? p.phone : p.profilePhone });
+                setOpen(false);
+              }}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function PersonEdit(props: { role: Role; id?: string }) {
   const [draft, setDraft] = useState<Draft>({});
@@ -138,6 +183,24 @@ export function PersonEdit(props: { role: Role; id?: string }) {
           </button>
         )}
       </div>
+
+      <div class="form-section">
+        <WhoSentIt value={draft.cameFrom} onChange={(v) => set('cameFrom', v)} />
+      </div>
+
+      {!isShadchan && (
+        <div class="form-section">
+          <label style="margin-bottom:6px">Suggested to me</label>
+          <div class="radio-row">
+            <button class={draft.suggestedToMe ? 'active' : ''} onClick={() => set('suggestedToMe', true)}>
+              Yes
+            </button>
+            <button class={!draft.suggestedToMe ? 'active' : ''} onClick={() => set('suggestedToMe', false)}>
+              No
+            </button>
+          </div>
+        </div>
+      )}
 
       <div class="form-section">
         <label>Tags</label>
