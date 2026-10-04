@@ -47,6 +47,12 @@ never change their live sites.**
 
    **It is a proposal until the owner chooses.** Check the owner's answers to its section 11
    before building on it.
+7. `docs/PEOPLE_AND_SOURCES.md`: one record per person at scale. It covers:
+   - 100+ shadchanim, repeated meetings, referrals and lists
+   - profiles that aren't for me
+   - Single Mode and Shadchan Mode
+
+   **A proposal:** check the owner's answers to its section 17.
 
 **Past attempts, read-only like the two above:**
 

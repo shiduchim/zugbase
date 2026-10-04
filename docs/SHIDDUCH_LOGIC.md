@@ -11,6 +11,8 @@ attempts: PeerMatch, zugmatch, ZivugBase, zugbase and testmatch. **Every name in
 - A clickable prototype with made-up data, `prototype/shidduch-flow.html`, walks through a
   complicated shidduch on the phone (section 12).
 - The production app is not being built yet.
+- `docs/PEOPLE_AND_SOURCES.md` extends this design. It covers one record per person, every source
+  kept (meetings, referrals, lists), profiles that aren't for me, and the two modes.
 
 **Contents**
 
