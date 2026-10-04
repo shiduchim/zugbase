@@ -265,7 +265,7 @@ filing, lists, contact cards, chat import, the PeerMatch import.
 
 | Signal | Result |
 |---|---|
-| Same WhatsApp number, phone or email | **"Miriam is already here"**, with her history. Same person: Yes is preselected; one tap confirms. Shared phones are why it still asks |
+| Same WhatsApp number, phone or email | **"Miriam is likely already here"**, with her history. Same person: Yes is preselected, and one tap confirms. It never says "certain", because phones are shared (decided) |
 | Same name (in any script, without titles) plus the same city or referrer | "Is this the Miriam you know?" Yes / No, nothing preselected |
 | Similar name only | a new record, with a visible "maybe the same as…" hint |
 | A name with no number | a light record marked "needs a number". It's checked again once a number is added |
@@ -309,7 +309,7 @@ Duplicates can still be **merged**:
 | Total | the lines on the list |
 | Contacted | anything I sent them, or a call, after the list arrived, from anywhere in the app |
 | Replied | anything from them after my first contact |
-| Needs follow-up | contacted, no reply, and the list's follow-up date has passed (default: 7 days after contact) |
+| Needs follow-up | contacted, no reply, and the follow-up time has passed. **The default is 7 days after contact.** Each source or list can set its own date or number of days (decided) |
 | Not contacted | on the list, nothing sent yet |
 
 - A list's follow-up is **one quiet item**, not one reminder per person.
@@ -433,7 +433,12 @@ Shadchanim · 112              − +
      never contacted · Rivka's 10
 ```
 
-- **Needs contact:** never contacted, or a list follow-up is due (question 2 in section 14).
+- **Needs contact:** never contacted, or a follow-up is due (decided). It does **not** include
+  long silence.
+- **Dormant (60+ days):** a separate, optional filter for anyone not contacted in 60 days or more.
+  It's a filter only, never a reminder (decided).
+- **References** are reached only from each single's page and from search. They have no tab or
+  view (decided).
 - **Sources:** every event, group, site and list. Each opens its source page (6.3).
 - **Sort:** last contact, A–Z, recently added, waiting longest.
 - **Group:** by who referred them, by folder, by city.
@@ -499,37 +504,67 @@ a summary of the dates, and recent History. Behind tabs: **Dates · History (by 
 
 ## 10. The look: Warm Modern Dashboard
 
-**Approved by the owner**, from mockup renderings made with ChatGPT. There is no repository file
-for it yet.
+**Approved by the owner**, from a ChatGPT mockup rendering ("Option 4 — Warm Modern Dashboard")
+of the Shadchanim list and a shadchan page. The screenshot itself isn't stored in the repository.
 
-**Goals:**
+**What the mockup shows, and what the builder follows:**
 
-- modern, high-tech feeling
-- warm and calm, easy on the eyes
-- not corporate, not visually stressful
-- compact enough for daily use
-- strong readability
-- clear icons and subtle color
+- **Background:** warm cream, with a soft peach glow behind the top of a person's page.
+- **Cards and rows:**
+  - near-white cards, about 16 px corners, a very soft shadow, no hard borders
+  - the selected or first row has a light blue tint
+- **Text:**
+  - deep navy text, with warm grey for secondary lines
+  - **serif** for the wordmark and screen titles ("Shadchanim")
+  - clean **sans-serif** for everything else, with names in bold
+- **Accent:** a calm blue for the active tab, the active view and links. The round "+" button is
+  a soft blue-grey.
+- **Avatars:** initials in soft pastel circles (blue, green, peach, lavender, sky). Never photos.
+- **Icons:** simple line icons, each in a pale tinted circle or tile:
+  - phone: green
+  - message: blue
+  - profile or document: peach
+  - date: lavender
+  - waiting (hourglass): amber
+  - shidduchim (people): blue
+- **List rows:**
+  - avatar, name, "Last contact: today"
+  - one status line, such as "1 waiting · 2 active"
+  - a chevron at the end
+- **Views:** a segmented control on a light grey track. The selected view is a white or
+  light blue pill.
+- **Search:** a rounded search field with a separate filter button (a sliders icon).
+- **A person's page:**
+  - a large avatar, the name, and a type chip ("Shadchan"), plus a "⋯" menu
+  - **three summary tiles:** Last contact · Waiting on her · Active shidduchim
+  - tabs: **Details · Conversation · Shidduchim · Files**
+  - the Conversation is grouped by day, one row per moment: icon, title, short detail, time,
+    chevron
+- **Bottom navigation:** line icons with labels: Recent · Guys · Girls · Shadchanim ·
+  Shidduchim. The active tab sits in a light blue rounded highlight.
+- **ב״ה** sits small, at the top right of every screen.
 
-**How the builder applies it:**
+**Kept from the owner's standing preferences, though the mockup doesn't show them:**
 
-- **Warm neutral backgrounds**, with soft cards used only where an object stands apart, and one
-  calm accent.
-- **Semantic color stays subtle:**
-  - yellow for waiting on them
-  - calm blue for waiting on me
-  - green for good progress
-  - muted for ended
-- **Avatars are initials** in soft tones. Icons are simple line icons, always with a word next to
-  them.
-- **Readable type:** body text 15–16 px, compact rows, no uppercase section labels, no big bulky
-  buttons.
-- **Mockups and the prototype** use initials, neutral icons, silhouettes or wireframes only. No
-  photographs of women, ever.
-- **The exact colors and spacing** should be matched to the owner's mockup renderings. A
-  screenshot of them would help (section 14).
+- **The contact buttons** sit under the summary tiles: Call · Email · WhatsApp · SMS · Waiting, in
+  that order, compact.
+- **Waiting on them is yellow or amber. Waiting on me is calm blue.**
+- **Yes / No buttons,** never ✕.
+- **No uppercase section labels,** and no big bulky buttons.
+- **A girl's photo appears only when tapped,** and the prototype uses a silhouette instead of a
+  photo.
 
----
+**Where it differs from the decided structure:**
+
+- The mockup's Shadchanim views (All · Active · Recently Active · A–Z) are replaced by the decided
+  views: All · Waiting on them · Waiting on me · Needs contact · Sources. Active, recently active
+  and A–Z become sort options.
+- The mockup's single "Waiting on her" tile shows both counts here: on her, and on me.
+
+**Fonts:** no font is loaded from other sites, so it works offline and behind NetSpark.
+
+- The serif comes from the phone's own fonts (Noto Serif on Android).
+- The sans-serif is the phone's system font.
 
 ## 11. Presentation settings, kept apart from the data
 
@@ -648,32 +683,45 @@ loads.
 
 1. **The new five tabs replace the approved tab sets and Home items** (`REBUILD_PLAN.md`: Home ·
    Shadchanim in Single Mode, and Home with Calls due, Memos, Recently added, backup, My profile,
-   Settings on Home only). Settled in 9.7, so every approved item still has a home. Please confirm.
+   Settings on Home only). Settled in 9.7, so every approved item still has a home. Confirmed by
+   the owner.
 2. **"A shidduch only for a real pairing" changes my earlier design**, where a profile arriving for
    me created Me ↔ Leah. Settled: the **idea** comes first (5.2). `SHIDDUCH_LOGIC.md` and
    `PEOPLE_AND_SOURCES.md` now say so.
 3. **"Reopen as Round 2"** (decided earlier) and "a shidduch only for a real pairing" (decided now)
    fit together if a repeat suggestion first shows as an idea on the same record, and "Interested"
-   opens Round 2 (5.3). Please confirm.
+   opens Round 2 (5.3). Confirmed by the owner.
 4. **"Waiting" and "You owe" are renamed** "Waiting on them" and "Waiting on me". The PeerMatch
    button "Waiting for reply" becomes the manual "Waiting" override, still yellow.
 5. **References are a main type but have no tab.** They're reached from each single's page and
-   from search. Should they also be a view under Guys and Girls (question 3)?
+   from search. The owner answered: singles' pages and search only, for now.
 6. **Parents and friends no longer have a list.** ZivugBase's roles (contact, friend, helper) and
    the prototype's "Friends and others" group are dropped. The records stay, reached through links
    and search.
 7. **The rejected "Ideas", "Where they came from" and "Profile shared" sections** (ZivugBase) are
    now one line each, plus views (Girls → For me, Shidduchim → Ideas, How I know her). None is a
    section.
-8. **The Warm Modern Dashboard has no file in any repository.** It's recorded here from your
-   description; the exact colors should come from your mockups.
+8. **The Warm Modern Dashboard has no file in any repository.** It's recorded in section 10 from
+   the owner's screenshot; this file is now its home.
 
-**Open questions (one line each)**
+**Answered by the owner (2026-10-04)**
 
-1. Matching: same phone or email = "already here, one tap"; same name = ask. OK?
-2. Should "Needs contact" also include "no contact in 60+ days"? It would be a view only.
-3. Should References also be a view under Guys and Girls, or stay on the singles' pages and in
-   search only?
-4. Is "Needs follow-up" for a list "contacted, no reply, 7 days after contact" when no date is
-   set? Is 7 days right?
-5. Can you send one screenshot of the Warm Modern Dashboard mockup, for the colors and spacing?
+1. **Matching:** approved. Same phone or email shows "**likely** already here", with one tap to
+   confirm. Same name only: the app asks.
+2. **Needs contact** doesn't include long silence. A separate, optional **Dormant (60+ days)**
+   filter does.
+3. **References** stay on singles' pages and in search, for now.
+4. **List follow-up:** 7 days after contact by default. Each source or list can set its own date
+   or number of days.
+5. **The Warm Modern Dashboard** screenshot was received, and is described in section 10.
+
+**Confirmed:**
+
+- **Home is replaced by Recent**, as in 9.7.
+- **The idea comes before the shidduch**, as in 5.2.
+- **A repeat suggestion uses Round 2** on the same pair record, as in 5.3.
+
+**Still open**
+
+- **The app's name.** The mockup's wordmark says "ZivugMatch"; the project and the earlier
+  screens say "zugbase". Which name should the prototype show? It uses "zugbase" until you say.
