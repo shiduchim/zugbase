@@ -110,11 +110,19 @@ export async function addInboxItem(text: string): Promise<string> {
 }
 
 export async function removeInboxItem(id: string): Promise<void> {
+  const item = await db.inbox.get(id);
+  if (item?.photoFileId) await db.files.delete(item.photoFileId);
   await db.inbox.delete(id);
 }
 
-/* Files — photos, PDFs and audio, stored apart from the record so a quick edit stays fast. */
-export async function saveFile(personId: string, kind: FileRecord['kind'], blob: Blob, name?: string, type?: string): Promise<string> {
+export async function attachInboxPhoto(id: string, file: File): Promise<void> {
+  const fileId = await saveFile('photo', file, file.name, file.type);
+  await db.inbox.update(id, { photoFileId: fileId });
+}
+
+/* Files — photos, PDFs and audio, stored apart from the record so a quick edit stays fast.
+   personId is set once the file is attached to a Person; a folder note's file has none. */
+export async function saveFile(kind: FileRecord['kind'], blob: Blob, name?: string, type?: string, personId?: string): Promise<string> {
   const id = newId();
   await db.files.add({ id, personId, kind, blob, name, type });
   return id;
@@ -122,4 +130,13 @@ export async function saveFile(personId: string, kind: FileRecord['kind'], blob:
 
 export async function getFile(id: string): Promise<FileRecord | undefined> {
   return db.files.get(id);
+}
+
+export async function attachPersonPhoto(personId: string, file: File): Promise<void> {
+  const old = (await getPerson(personId))?.photoFileId;
+  const fileId = await saveFile('photo', file, file.name, file.type, personId);
+  await patch(personId, (p) => {
+    p.photoFileId = fileId;
+  });
+  if (old) await db.files.delete(old);
 }

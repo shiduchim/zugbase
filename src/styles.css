@@ -163,6 +163,7 @@ h1.page-title { font-size: 21px; font-weight: 800; margin: 2px 16px 8px; letter-
 }
 .pill.on { background: var(--waiting-bg); border-color: var(--waiting-border); color: var(--waiting-ink); }
 .pill.gold { background: var(--gold-soft); border-color: #e6d6a8; color: #7a5f22; }
+.pill-x { background: none; border: none; color: inherit; padding: 0 0 0 6px; font-size: 13px; line-height: 1; }
 .pills { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 16px 10px; }
 
 .rows { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; }

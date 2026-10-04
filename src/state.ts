@@ -1,7 +1,8 @@
 import { signal } from '@preact/signals';
 import type { Mode, Role } from './types';
+import { ZUGBASE_ROOT } from './types';
 
-export type Tab = 'home' | 'browse' | 'shadchan' | 'intake';
+export type Tab = 'home' | 'browse';
 export type Layer =
   | { kind: 'person'; id: string }
   | { kind: 'edit'; role: Role; id?: string }
@@ -14,9 +15,10 @@ export const layers = signal<Layer[]>([]);
 export const zoom = signal<'folders' | 'names' | 'details'>('details');
 export const mode = signal<Mode>('shadchan');
 
-/* Browse's current place in the folder tree: a stack of node ids, starting at a root key. */
+/* Browse's current place in the folder tree: a stack of node ids, always starting at the one
+   real root, ZUGBASE_ROOT — the whole app is one tree: zugbase > folder > sub-folder > ... */
 export type BrowsePath = string[];
-export const browsePath = signal<BrowsePath>(['root:guys']);
+export const browsePath = signal<BrowsePath>([ZUGBASE_ROOT]);
 
 export interface Toast {
   id: number;
@@ -66,9 +68,4 @@ export function openMatch(): void {
 
 export function closeTop(): void {
   history.back();
-}
-
-export function goToTab(t: Tab): void {
-  tab.value = t;
-  if (t === 'shadchan') browsePath.value = ['root:shadchanim'];
 }

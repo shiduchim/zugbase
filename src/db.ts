@@ -1,15 +1,15 @@
 import Dexie, { type Table } from 'dexie';
-import type { FileRecord, Folder, InboxItem, Memo, Person, Settings } from './types';
+import type { FileRecord, Folder, FolderNote, InboxItem, Memo, Person, Settings } from './types';
 import { seedFolders, seedInbox, seedMemos, seedPeople } from './seed';
 
-/* Renamed from the first (rejected) design's "zugbaseDB": that build only ever held made-up
-   seed data, never a real backup, so there is nothing worth migrating — a clean database avoids
-   crashing on records shaped for the old schema (no folderIds, no cameFrom, ...). Once real
-   PeerMatch imports land here, schema changes go through a proper Dexie .upgrade() instead. */
+/* Renamed once from the first (rejected) design's "zugbaseDB": that build only ever held
+   made-up seed data, never a real backup, so there was nothing worth migrating. From here on,
+   schema changes are additive Dexie versions (see version(2) below) so real data survives. */
 class ZugbaseDB extends Dexie {
   people!: Table<Person, string>;
   memos!: Table<Memo, string>;
   folders!: Table<Folder, string>;
+  folderNotes!: Table<FolderNote, string>;
   inbox!: Table<InboxItem, string>;
   files!: Table<FileRecord, string>;
   settings!: Table<Settings, string>;
@@ -23,6 +23,9 @@ class ZugbaseDB extends Dexie {
       inbox: 'id, createdAt',
       files: 'id, personId',
       settings: 'key'
+    });
+    this.version(2).stores({
+      folderNotes: 'id, folderId, createdAt'
     });
   }
 }

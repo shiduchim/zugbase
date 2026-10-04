@@ -91,15 +91,30 @@ export interface Person {
 }
 
 /* Custom, owner-made folders. Built-in top folders (Guys/Girls/Shadchanim/Ideas for
-   me/Other people) are virtual — computed from role/suggestedToMe, never stored rows — so they
-   can never be deleted or emptied by mistake. parentId is either another folder's id or one of
-   the virtual root keys below. */
-export type RootFolderKey = 'root:guys' | 'root:girls' | 'root:shadchanim' | 'root:ideas' | 'root:others';
+   me/Other people/Intake) are virtual — computed, never stored rows — so they can never be
+   deleted or emptied by mistake. Every folder — built-in or custom — lives under one real root,
+   'zugbase', so the whole thing is one tree: zugbase > folder > sub-folder > ... */
+export const ZUGBASE_ROOT = 'zugbase';
+export type RootFolderKey = 'root:guys' | 'root:girls' | 'root:shadchanim' | 'root:ideas' | 'root:others' | 'root:intake';
 
 export interface Folder {
   id: string;
   name: string;
-  parentId: string; /* a Folder id, or a RootFolderKey */
+  parentId: string; /* a Folder id, a RootFolderKey, or ZUGBASE_ROOT */
+  createdAt: number;
+}
+
+/* A folder can hold more than people — a note, a photo, a recording — filed straight into it,
+   the way a real filing cabinet would. */
+export type FolderNoteKind = 'note' | 'photo' | 'audio' | 'file';
+
+export interface FolderNote {
+  id: string;
+  folderId: string; /* a Folder id, a RootFolderKey, or ZUGBASE_ROOT */
+  kind: FolderNoteKind;
+  text?: string;
+  fileId?: string;
+  name?: string;
   createdAt: number;
 }
 
@@ -110,16 +125,19 @@ export interface Memo {
   linkedPersonId?: string;
 }
 
-/* Raw captured text/shares, kept exactly as they came until filed into a Person. */
+/* Raw captured text/shares, kept exactly as they came until filed into a Person. A photo can
+   be attached before filing (e.g. a screenshot that came with the text) and carries over to
+   the Person it becomes. */
 export interface InboxItem {
   id: string;
   text: string;
+  photoFileId?: string;
   createdAt: number;
 }
 
 export interface FileRecord {
   id: string;
-  personId: string;
+  personId?: string; /* set when the file belongs to a Person; unset for a folder note's file */
   kind: 'photo' | 'audio' | 'attachment';
   blob: Blob;
   name?: string;

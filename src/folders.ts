@@ -1,9 +1,11 @@
 /* The one owner for folders: tree, counts, and bulk membership changes with Undo.
-   Built-in root folders are virtual — computed from role/suggestedToMe — so they can never be
-   deleted or emptied by mistake. Only custom folders are real rows, and removing someone from
-   one never deletes them (folders are labels). */
+   Everything lives under one real root, 'zugbase'. Built-in top folders (Guys/Girls/
+   Shadchanim/Ideas for me/Other people/Intake) are virtual — computed, never stored rows — so
+   they can never be deleted or emptied by mistake. Only custom folders are real rows, and
+   removing someone from one never deletes them (folders are labels). */
 import { db } from './db';
 import type { Folder, Mode, Person, RootFolderKey } from './types';
+import { ZUGBASE_ROOT } from './types';
 import { newId } from './lib/ids';
 
 export interface RootDef {
@@ -12,19 +14,20 @@ export interface RootDef {
 }
 
 export function rootsForMode(mode: Mode): RootDef[] {
-  if (mode === 'single') {
-    return [
-      { key: 'root:ideas', label: 'Ideas for me' },
-      { key: 'root:shadchanim', label: 'Shadchanim' },
-      { key: 'root:others', label: 'Other people' }
-    ];
-  }
-  return [
-    { key: 'root:guys', label: 'Guys' },
-    { key: 'root:girls', label: 'Girls' },
-    { key: 'root:shadchanim', label: 'Shadchanim' },
-    { key: 'root:ideas', label: 'Ideas for me' }
-  ];
+  const base: RootDef[] =
+    mode === 'single'
+      ? [
+          { key: 'root:ideas', label: 'Ideas for me' },
+          { key: 'root:shadchanim', label: 'Shadchanim' },
+          { key: 'root:others', label: 'Other people' }
+        ]
+      : [
+          { key: 'root:guys', label: 'Guys' },
+          { key: 'root:girls', label: 'Girls' },
+          { key: 'root:shadchanim', label: 'Shadchanim' },
+          { key: 'root:ideas', label: 'Ideas for me' }
+        ];
+  return [...base, { key: 'root:intake', label: 'Intake' }];
 }
 
 export function matchesRoot(p: Person, key: RootFolderKey): boolean {
@@ -33,16 +36,11 @@ export function matchesRoot(p: Person, key: RootFolderKey): boolean {
   if (key === 'root:girls') return p.role === 'girl';
   if (key === 'root:shadchanim') return p.role === 'shadchan';
   if (key === 'root:others') return p.role === 'other' || ((p.role === 'guy' || p.role === 'girl') && !p.suggestedToMe);
-  return false;
+  return false; /* root:intake holds InboxItems, not People */
 }
 
 export async function livePeople(): Promise<Person[]> {
   return db.people.filter((p) => !p.deletedAt).toArray();
-}
-
-export async function peopleInRoot(key: RootFolderKey): Promise<Person[]> {
-  const all = await livePeople();
-  return all.filter((p) => matchesRoot(p, key));
 }
 
 export async function peopleInFolder(folderId: string): Promise<Person[]> {
@@ -55,14 +53,15 @@ export async function listFolders(): Promise<Folder[]> {
 }
 
 export interface TreeNode {
-  key: string; /* a RootFolderKey or a Folder id */
+  key: string; /* ZUGBASE_ROOT, a RootFolderKey, or a Folder id */
   name: string;
   isRoot: boolean;
   children: TreeNode[];
 }
 
-/* The whole navigable tree for the picker and any full-tree view: roots first, each with its
-   custom sub-folders nested underneath, any depth. */
+/* The whole navigable tree for the picker and any full-tree view: the zugbase root, then the
+   built-in category folders, each with its custom sub-folders nested underneath (any depth),
+   plus any custom folders made directly at the top level. */
 export function buildTree(mode: Mode, allFolders: Folder[]): TreeNode[] {
   function childrenOf(parentId: string): TreeNode[] {
     return allFolders
@@ -70,12 +69,15 @@ export function buildTree(mode: Mode, allFolders: Folder[]): TreeNode[] {
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((f) => ({ key: f.id, name: f.name, isRoot: false, children: childrenOf(f.id) }));
   }
-  return rootsForMode(mode).map((r) => ({ key: r.key, name: r.label, isRoot: true, children: childrenOf(r.key) }));
+  const roots = rootsForMode(mode).map((r) => ({ key: r.key, name: r.label, isRoot: true, children: childrenOf(r.key) }));
+  const topCustom = childrenOf(ZUGBASE_ROOT);
+  return [{ key: ZUGBASE_ROOT, name: 'zugbase', isRoot: true, children: [...roots, ...topCustom] }];
 }
 
 export function rootOf(nodeId: string, allFolders: Folder[]): RootFolderKey {
   let id = nodeId;
   while (!id.startsWith('root:')) {
+    if (id === ZUGBASE_ROOT) return 'root:others';
     const f = allFolders.find((x) => x.id === id);
     if (!f) return 'root:others';
     id = f.parentId;
@@ -84,22 +86,30 @@ export function rootOf(nodeId: string, allFolders: Folder[]): RootFolderKey {
 }
 
 export function folderName(id: string, mode: Mode, allFolders: Folder[]): string {
+  if (id === ZUGBASE_ROOT) return 'zugbase';
   if (id.startsWith('root:')) return rootsForMode(mode).find((r) => r.key === id)?.label ?? id;
   return allFolders.find((f) => f.id === id)?.name ?? '(deleted folder)';
 }
 
 /* Synchronous versions for a screen that already holds the full people/folders lists live
    (via useLive) and just needs to slice them per node on every render. */
-export function directChildren(nodeId: string, allFolders: Folder[]): Folder[] {
-  return allFolders.filter((f) => f.parentId === nodeId).sort((a, b) => a.name.localeCompare(b.name));
+export function directChildren(nodeId: string, allFolders: Folder[], mode?: Mode): Folder[] {
+  const real = allFolders.filter((f) => f.parentId === nodeId);
+  if (nodeId !== ZUGBASE_ROOT || !mode) return real.sort((a, b) => a.name.localeCompare(b.name));
+  /* At the zugbase root, the built-in category folders are virtual rows sorted in first,
+     ahead of any custom top-level folders. */
+  const virtual: Folder[] = rootsForMode(mode).map((r) => ({ id: r.key, name: r.label, parentId: ZUGBASE_ROOT, createdAt: 0 }));
+  return [...virtual, ...real.sort((a, b) => a.name.localeCompare(b.name))];
 }
 
 export function directPeople(nodeId: string, allPeople: Person[]): Person[] {
+  if (nodeId === ZUGBASE_ROOT) return [];
   if (nodeId.startsWith('root:')) return allPeople.filter((p) => matchesRoot(p, nodeId as RootFolderKey));
   return allPeople.filter((p) => p.folderIds.includes(nodeId));
 }
 
 export function peopleInSubtree(nodeId: string, allFolders: Folder[], allPeople: Person[]): Person[] {
+  if (nodeId === ZUGBASE_ROOT) return allPeople;
   if (nodeId.startsWith('root:')) return directPeople(nodeId, allPeople);
   const ids = new Set<string>();
   const stack = [nodeId];
@@ -115,25 +125,25 @@ export function countForNode(nodeId: string, allFolders: Folder[], allPeople: Pe
   return peopleInSubtree(nodeId, allFolders, allPeople).length;
 }
 
-export async function childFolders(parentId: string): Promise<Folder[]> {
-  const all = await listFolders();
-  return all.filter((f) => f.parentId === parentId).sort((a, b) => a.name.localeCompare(b.name));
+/* Folder notes — photos, text notes and recordings filed straight into a folder. */
+export async function notesInFolder(folderId: string): Promise<import('./types').FolderNote[]> {
+  return db.folderNotes.where('folderId').equals(folderId).toArray();
 }
 
-/* Recursive count, like a folder's size in a file browser — includes everyone in its
-   sub-folders too, not only direct members. */
-export async function folderCount(folderId: string): Promise<number> {
-  const [all, people] = await Promise.all([listFolders(), livePeople()]);
-  const ids = new Set<string>();
-  const stack = [folderId];
-  while (stack.length) {
-    const id = stack.pop()!;
-    ids.add(id);
-    for (const f of all) if (f.parentId === id) stack.push(f.id);
-  }
-  const members = new Set<string>();
-  for (const p of people) if (p.folderIds.some((id) => ids.has(id))) members.add(p.id);
-  return members.size;
+export async function addFolderNote(
+  folderId: string,
+  kind: import('./types').FolderNoteKind,
+  fields: { text?: string; fileId?: string; name?: string }
+): Promise<string> {
+  const id = newId();
+  await db.folderNotes.add({ id, folderId, kind, createdAt: Date.now(), ...fields });
+  return id;
+}
+
+export async function deleteFolderNote(id: string): Promise<void> {
+  const note = await db.folderNotes.get(id);
+  if (note?.fileId) await db.files.delete(note.fileId);
+  await db.folderNotes.delete(id);
 }
 
 export async function createFolder(name: string, parentId: string): Promise<string> {
@@ -148,18 +158,17 @@ export interface FolderDeleteSnapshot {
   memberIds: string[];
 }
 
-/* Deleting a folder never deletes anyone in it — its children move up to its own parent, and
-   its direct members simply lose that one label. Undo-able: the caller shows a toast with the
-   snapshot this returns. */
+/* Deleting a folder never deletes anyone (or anything) in it — its children move up to its own
+   parent, its direct members simply lose that one label, and its notes move up with it. */
 export async function deleteFolder(id: string): Promise<FolderDeleteSnapshot | undefined> {
   const folder = await db.folders.get(id);
   if (!folder) return undefined;
-  const kids = await childFolders(id);
+  const kids = await db.folders.where('parentId').equals(id).toArray();
   await Promise.all(kids.map((k) => db.folders.update(k.id, { parentId: folder.parentId })));
+  const notes = await notesInFolder(id);
+  await Promise.all(notes.map((n) => db.folderNotes.update(n.id, { folderId: folder.parentId })));
   const members = await peopleInFolder(id);
-  await Promise.all(
-    members.map((p) => db.people.update(p.id, { folderIds: p.folderIds.filter((f) => f !== id) }))
-  );
+  await Promise.all(members.map((p) => db.people.update(p.id, { folderIds: p.folderIds.filter((f) => f !== id) })));
   await db.folders.delete(id);
   return { folder, childIds: kids.map((k) => k.id), memberIds: members.map((m) => m.id) };
 }

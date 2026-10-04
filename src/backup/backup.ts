@@ -10,16 +10,17 @@ const VERSION = 1;
 
 interface FileMeta {
   id: string;
-  personId: string;
+  personId?: string;
   kind: FileRecord['kind'];
   name?: string;
   type?: string;
 }
 
 async function buildZipBytes(): Promise<Uint8Array> {
-  const [people, folders, memos, inbox, settings, files] = await Promise.all([
+  const [people, folders, folderNotes, memos, inbox, settings, files] = await Promise.all([
     db.people.toArray(),
     db.folders.toArray(),
+    db.folderNotes.toArray(),
     db.memos.toArray(),
     db.inbox.toArray(),
     db.settings.toArray(),
@@ -37,7 +38,7 @@ async function buildZipBytes(): Promise<Uint8Array> {
     format: FORMAT,
     version: VERSION,
     createdAt: Date.now(),
-    tables: { people, folders, memos, inbox, settings },
+    tables: { people, folders, folderNotes, memos, inbox, settings },
     files: fileMeta
   };
   zipInput['data.json'] = strToU8(JSON.stringify(manifest));
@@ -111,10 +112,18 @@ async function restoreFromZipBytes(bytes: Uint8Array): Promise<RestoreCounts> {
   const manifest = JSON.parse(strFromU8(manifestBytes));
   if (manifest.format !== FORMAT) throw new Error('Unrecognized backup format');
 
-  await db.transaction('rw', [db.people, db.folders, db.memos, db.inbox, db.settings, db.files], async () => {
-    await Promise.all([db.people.clear(), db.folders.clear(), db.memos.clear(), db.inbox.clear(), db.files.clear()]);
+  await db.transaction('rw', [db.people, db.folders, db.folderNotes, db.memos, db.inbox, db.settings, db.files], async () => {
+    await Promise.all([
+      db.people.clear(),
+      db.folders.clear(),
+      db.folderNotes.clear(),
+      db.memos.clear(),
+      db.inbox.clear(),
+      db.files.clear()
+    ]);
     await db.people.bulkAdd(manifest.tables.people);
     await db.folders.bulkAdd(manifest.tables.folders);
+    if (manifest.tables.folderNotes) await db.folderNotes.bulkAdd(manifest.tables.folderNotes);
     await db.memos.bulkAdd(manifest.tables.memos);
     await db.inbox.bulkAdd(manifest.tables.inbox);
     if (manifest.tables.settings?.[0]) await db.settings.put(manifest.tables.settings[0]);

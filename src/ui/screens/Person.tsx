@@ -1,15 +1,67 @@
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import type { Person } from '../../types';
-import { useLive } from '../../hooks';
-import { getPerson, patch, addActivity } from '../../repo';
+import { useLive, usePhotoUrl } from '../../hooks';
+import { getPerson, patch, addActivity, attachPersonPhoto } from '../../repo';
 import { currentAge } from '../../lib/age';
 import { canSms, canWhatsApp, formatLocal, mailHref, smsHref, telHref, whatsappHref } from '../../lib/phone';
-import { closeTop, mode, openEdit, openPerson } from '../../state';
+import { closeTop, mode, openEdit, openPerson, showToast } from '../../state';
 import { db } from '../../db';
-import { folderName } from '../../folders';
+import { folderName, removeFromFolder, undoFolderChange } from '../../folders';
 import { BackIcon, MicIcon, SendIcon } from '../parts/Icons';
 import { Sheet, Pill } from '../parts/common';
 import { FolderPicker } from '../parts/FolderPicker';
+
+/* Tapping the tile picks/replaces a photo (guys). For girls the tile only shows a reveal
+   button — the image itself only appears once tapped, per the standing rule. */
+function PhotoTile(props: { p: Person }) {
+  const url = usePhotoUrl(props.p.photoFileId);
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style="display:none"
+        onChange={(e) => {
+          const file = e.currentTarget.files?.[0];
+          if (file) attachPersonPhoto(props.p.id, file);
+        }}
+      />
+      <div
+        class="photo-tile"
+        onClick={() => inputRef.current?.click()}
+        style={url ? { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+      >
+        {!url && 'Photo'}
+      </div>
+    </>
+  );
+}
+
+function GirlPhotoControl(props: { p: Person; revealed: boolean; onToggle: () => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style="display:none"
+        onChange={(e) => {
+          const file = e.currentTarget.files?.[0];
+          if (file) attachPersonPhoto(props.p.id, file);
+        }}
+      />
+      <button
+        class="photo-btn"
+        onClick={() => (props.p.photoFileId ? props.onToggle() : inputRef.current?.click())}
+      >
+        {props.revealed ? 'Hide' : 'Photo'}
+      </button>
+    </>
+  );
+}
 
 function boldAndLinks(text: string) {
   const parts = text.split(/(\*[^*]+\*|(?:\+?972|0)[\d\s-]{7,12}\d)/g);
@@ -226,15 +278,53 @@ function DetailsTab(props: { p: Person }) {
           {p.folderIds.map((id) => (
             <span key={id} class="pill">
               {folderName(id, mode.value, allFolders)}
+              <button
+                class="pill-x"
+                onClick={async () => {
+                  const snapshot = await removeFromFolder([p.id], id);
+                  showToast('Removed from folder', () => undoFolderChange(snapshot));
+                }}
+              >
+                ×
+              </button>
             </span>
           ))}
         </div>
         <button class="link-btn" onClick={() => setPicking(true)}>
-          Add to…
+          Add to another folder…
         </button>
+        <div class="sub" style="font-size:11.5px;margin-top:2px">
+          To move: remove the old folder above, then add the new one.
+        </div>
       </div>
       {picking && <FolderPicker personIds={[p.id]} onClose={() => setPicking(false)} />}
+
+      <LinksCard p={p} />
     </>
+  );
+}
+
+function LinksCard(props: { p: Person }) {
+  const sentByThem = useLive(
+    () => db.people.filter((x) => !x.deletedAt && x.cameFrom?.personId === props.p.id).toArray(),
+    [props.p.id],
+    []
+  );
+  if (sentByThem.length === 0) return null;
+  return (
+    <div class="section card">
+      <div class="field-label" style="margin-bottom:6px">
+        Sent by {props.p.name} ({sentByThem.length})
+      </div>
+      <div class="rows" style="padding:0;gap:6px">
+        {sentByThem.map((s) => (
+          <div key={s.id} class="home-row" onClick={() => openPerson(s.id)}>
+            <span>{s.name}</span>
+            <span class="when">{s.role}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -288,6 +378,8 @@ function HistoryTab(props: { p: Person }) {
 export function PersonScreen(props: { id: string }) {
   const p = useLive(() => getPerson(props.id), [props.id], undefined as Person | undefined);
   const [subtab, setSubtab] = useState<SubTab>('profile');
+  const [revealed, setRevealed] = useState(false);
+  const revealedUrl = usePhotoUrl(revealed ? p?.photoFileId : undefined);
   if (!p) return null;
 
   return (
@@ -297,17 +389,23 @@ export function PersonScreen(props: { id: string }) {
           <BackIcon />
         </button>
         <div class="name">{p.name || '(no name)'}</div>
-        {p.role !== 'girl' && p.role !== 'shadchan' && <div class="photo-tile">Photo</div>}
+        {p.role !== 'girl' && p.role !== 'shadchan' && <PhotoTile p={p} />}
         <div class="side">
           <div class="beis-hashem">ב״ה</div>
           <div class="edit-row">
-            {p.role === 'girl' && <button class="photo-btn">Photo</button>}
+            {p.role === 'girl' && <GirlPhotoControl p={p} revealed={revealed} onToggle={() => setRevealed((r) => !r)} />}
             <button class="edit-btn" onClick={() => openEdit(p.role, p.id)}>
               Edit
             </button>
           </div>
         </div>
       </div>
+
+      {revealedUrl && (
+        <div class="section">
+          <img src={revealedUrl} style="width:100%;border-radius:12px;display:block" />
+        </div>
+      )}
 
       <div class="tabs-row">
         <button class={subtab === 'profile' ? 'active' : ''} onClick={() => setSubtab('profile')}>

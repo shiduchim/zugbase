@@ -1,10 +1,38 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Person, Role } from '../../types';
-import { createPerson, getPerson, patch, searchAll } from '../../repo';
+import { attachPersonPhoto, createPerson, getPerson, patch, searchAll } from '../../repo';
 import { guessFromText } from '../../lib/guess';
 import { closeTop, openPerson } from '../../state';
 import { Sheet } from '../parts/common';
-import { useLive } from '../../hooks';
+import { useLive, usePhotoUrl } from '../../hooks';
+
+function PhotoField(props: { personId: string }) {
+  const fileId = useLive(async () => (await getPerson(props.personId))?.photoFileId, [props.personId], undefined as string | undefined);
+  const url = usePhotoUrl(fileId);
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div class="form-section">
+      <label>Photo</label>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style="display:none"
+        onChange={(e) => {
+          const file = e.currentTarget.files?.[0];
+          if (file) attachPersonPhoto(props.personId, file);
+        }}
+      />
+      <div
+        class="photo-tile"
+        style={{ width: '100%', height: '140px', ...(url ? { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}) }}
+        onClick={() => inputRef.current?.click()}
+      >
+        {!url && 'Tap to add a photo'}
+      </div>
+    </div>
+  );
+}
 
 type Draft = Partial<Person>;
 
@@ -109,6 +137,8 @@ export function PersonEdit(props: { role: Role; id?: string }) {
       <div class="person-header">
         <div class="name">{props.id ? `Edit ${draft.name || ''}` : `Add ${props.role}`}</div>
       </div>
+
+      {props.id && !isShadchan && <PhotoField personId={props.id} />}
 
       <div class="form-section">
         {isShadchan ? (

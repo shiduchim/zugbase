@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { useLive } from '../../hooks';
 import { db } from '../../db';
-import { addMemo, deleteMemo, listCallsDue, listMemos, listRecentlyAdded, searchAll, setCallDue, getSettings } from '../../repo';
+import { addMemo, deleteMemo, listCallsDue, listMemos, listRecentlyAdded, searchAll, setCallDue, getSettings, updateSettings } from '../../repo';
 import { countForNode, rootsForMode } from '../../folders';
 import type { Folder, Memo, Person } from '../../types';
 import { browsePath, mode, openPerson, tab } from '../../state';
@@ -91,13 +91,21 @@ export function Home() {
         ))}
       </div>
 
-      {settings?.mode === 'single' && (
+      {settings && (
         <div class="home-card card">
           <div class="section-title" style="margin:0 0 6px">
-            My profile
+            My card
           </div>
-          <div class="sub" style="color:var(--muted);font-size:12.5px">
-            I am a single {settings.iAm}. Change this in Settings.
+          <div class="sub" style="color:var(--muted);font-size:12.5px;margin-bottom:8px">
+            I am a single — this decides who "Idea for me" means in Intake.
+          </div>
+          <div class="mode-toggle" style="margin:0">
+            <button class={settings.iAm === 'guy' ? 'active' : ''} onClick={() => updateSettings((s) => (s.iAm = 'guy'))}>
+              Guy
+            </button>
+            <button class={settings.iAm === 'girl' ? 'active' : ''} onClick={() => updateSettings((s) => (s.iAm = 'girl'))}>
+              Girl
+            </button>
           </div>
         </div>
       )}
