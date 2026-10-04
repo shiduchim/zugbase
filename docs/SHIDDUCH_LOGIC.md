@@ -3,7 +3,14 @@
 This is a design only; there is no code. It was written on 2026-10-04, after studying all five
 attempts: PeerMatch, zugmatch, ZivugBase, zugbase and testmatch. **Every name in it is made up.**
 
-**Status: a proposal.** The owner picks the architecture. Nothing is built on it before then.
+**Status: decided on 2026-10-04.**
+
+- The owner chose **C · One ledger**, with the two changes from A and B.
+- Section 11 records the owner's answers. Sections 9.2, 9.4 and 9.5 add the two refinements the
+  owner asked for: a permanent ID for every date and for every open item.
+- A clickable prototype with made-up data, `prototype/shidduch-flow.html`, walks through a
+  complicated shidduch on the phone (section 12).
+- The production app is not being built yet.
 
 **Contents**
 
@@ -15,9 +22,10 @@ attempts: PeerMatch, zugmatch, ZivugBase, zugbase and testmatch. **Every name in
 6. Three competing architectures
 7. One complicated shidduch, stored three ways
 8. Stress tests
-9. The recommendation in full
+9. The chosen design in full
 10. Conflicts I found
-11. Decisions for you
+11. Decisions (answered)
+12. The clickable prototype
 
 ---
 
@@ -41,7 +49,7 @@ attempts: PeerMatch, zugmatch, ZivugBase, zugbase and testmatch. **Every name in
   - Every page (a person, a shidduch, Home) shows the entries that concern it.
   - The status at the top of a page is worked out from those entries. Nobody types it.
 
-**Recommendation: C, with one thing borrowed from A and one from B.**
+**Chosen: C, with one thing borrowed from A and one from B.**
 
 - C scored best in the stress tests (section 8), and nothing ever has to be written twice.
 - **From A:** facts about a person (phone, age, checkboxes) are still edited directly.
@@ -60,7 +68,7 @@ attempts: PeerMatch, zugmatch, ZivugBase, zugbase and testmatch. **Every name in
 - Each shidduch gets one page: both sides, the dates, what's pending, and the whole story.
 - Home shows who is waiting on whom, and what you owe whom.
 
-**What I need from you:** section 11 has five short questions.
+**Your answers** are in section 11, and the prototype is described in section 12.
 
 ---
 
@@ -814,7 +822,7 @@ it's a good match" is about the shidduch.
 
 ---
 
-## 9. The recommendation in full: C, with a real shidduch and editable facts
+## 9. The chosen design in full: C, with a real shidduch and editable facts
 
 ### 9.1 What is stored: six things
 
@@ -832,6 +840,8 @@ it's a good match" is about the shidduch.
    B.)*
    - Stored: the two people, and for each side, who speaks for it in this shidduch. That is filled
      in from the links, for example her shadchan, then her mother.
+   - It is divided into **rounds**. Round 1 starts when the idea first arrives. A new suggestion
+     after an ending starts Round 2, on the same record (9.5).
    - Everything else about it is worked out.
 4. **Entry:** one thing that happened or was said.
    - **When** it happened: exact, the day only, approximate, or unknown. Also when it was recorded.
@@ -850,17 +860,20 @@ it's a good match" is about the shidduch.
 6. **File:** a photo, PDF or recording, stored once and never changed. It knows the entry it
    arrived in, and every entry that sent it.
 
+Rounds, dates and open items also get **permanent IDs** (9.2), but their state is worked out from
+the entries.
+
 ### 9.2 Your list of objects, and where each one ended up
 
-| You listed | In the recommendation |
+| You listed | In the chosen design |
 |---|---|
 | Person | Person |
 | Shidduch / match case | Shidduch: a real record (the pair); its story is worked out |
 | Activity / event | Entry |
 | Profile package | not separate: the version and the files inside one send entry |
-| Date | worked out from the entries that set, move, hold or cancel it, and shown like a record |
+| Date | a permanent date ID; its state is worked out from the entries that point to that ID |
 | Contact / relationship | Link |
-| Task / follow-up | open item: worked out from the entries that open and close it |
+| Task / follow-up | open item: a permanent ID, opened by one entry and closed by an entry that names the same ID |
 
 Also not separate:
 
@@ -892,6 +905,50 @@ How they relate:
   - any number of files, versions, "about"s and changes
   - optionally, the entry it replies to
 - A profile version belongs to one person. Entries bring it in or send it out.
+
+#### Permanent IDs: rounds, dates and open items (decided)
+
+A round's, a date's and an open item's current state is worked out from entries. Each one still
+gets a **permanent ID** the moment it first appears, and every later entry points to it by that ID.
+
+**Dates.** The first entry that sets up a date creates its ID. The record holds only the ID, the
+shidduch, the round and the number ("Date 1"). After that, every entry that concerns the date
+names that ID:
+
+- set up, moved, moved again, cancelled, happened
+- my feedback, her feedback, notes, the place
+
+The app never decides which date an entry belongs to from the time order alone. When an entry
+might concern a date, the app shows which one ("Moves: Date 1, Wed Aug 19"). If more than one date
+is open, you pick it.
+
+**Open items.** The entry that opens an item creates its ID. The record holds:
+
+- the ID
+- who owes whom
+- what kind of thing is owed: an answer, an opinion, feedback on a date, a thing to send, a
+  question, a call
+- which shidduch, and which date, it's about
+
+Some examples, each with its own ID:
+
+- waiting on Miriam for Leah's feedback on Date 1
+- waiting on Moshe for his opinion
+- I owe Rivka my profile
+
+**A reply closes the specific item it answers,** never "the latest waiting item".
+
+- The app lists the open items that match who the reply is from, what it says, the shidduch and
+  the date.
+- It names the exact item it would close ("Closes: waiting on Miriam · Leah's feedback on Date 1").
+- You confirm with Yes or No.
+- The entry stores that item's ID.
+
+Two items with the same person stay separate. On Aug 20, "I owe Miriam my feedback" and "waiting
+on Miriam for hers" are both about Date 1, and each one closes only through its own ID.
+
+**Rounds.** The entry that starts a round creates its ID. Every entry about the shidduch stores
+which round it belongs to. That is set when the entry is written, not worked out later from dates.
 
 ### 9.3 What is worked out, never typed
 
@@ -928,7 +985,7 @@ from the entries. Nobody edits it by hand.
   - adds a link ("Rachel is Leah's mother")
   - "passed on to …"
 
-**Open items that open by themselves.** Each kind can be turned off; see question 2 in section 11.
+**Open items that open by themselves.** They are on, and they stay quiet (decided; see below).
 
 | When this is recorded | This opens | It closes when |
 |---|---|---|
@@ -946,6 +1003,21 @@ from the entries. Nobody edits it by hand.
 **Nothing ever tells you to chase a single.** Open items point at the go-between (a shadchan or a
 contact person), or at your own answers.
 
+**Quiet (decided).** Automatic items are on, but they never nag.
+
+- No reminders, no popups, no badges that demand attention.
+- Home simply lists what is outstanding: what you're waiting on, and what you owe.
+- The only questions are the one-tap choices inside a flow you started yourself. For example,
+  after you paste Miriam's message the app asks "Her side: Yes?".
+- You never have to keep a task list up to date by hand.
+
+**The Waiting button stays, as a manual override** for unusual cases.
+
+- On a person's page it turns yellow when anything is waiting on that person.
+- Tapping it lists those items. "Got it" closes one by hand; that close is recorded as an entry
+  that names the item's ID.
+- "Add" opens a waiting item by hand: what you're waiting for, and optionally which shidduch.
+
 ### 9.5 The stages, in plain words (worked out)
 
 New idea → Checking → Waiting for her side (or his) → Setting up date 1 → Dating, after date N →
@@ -956,7 +1028,24 @@ Paused until … → Ended (by whom, why), or Engaged
 - "No" and "stop" end it.
 - "Not now" pauses it.
 
-### 9.6 The eight rules that keep information together
+**Rounds (decided).** There is one permanent record per pair. A suggestion that comes after the
+shidduch ended reopens it as a new round:
+
+```
+Me ↔ Leah
+  Round 2 · 2028 · suggested by Chana
+    active
+  Round 1 · 2026 · 3 dates
+    ended by her (hashkafa)
+```
+
+- The current round is on top, and its stage, statuses, dates and open items cover only that round.
+- Dates are numbered within their round: Round 2 starts again at Date 1.
+- The old rounds stay visible below, clearly separated, and fold away with one tap.
+- A suggestion while the shidduch is still active does not start a round. It joins the current
+  round as "also suggested by …".
+
+### 9.6 The ten rules that keep information together
 
 1. **Write once, show everywhere.** One entry shows on every page it concerns.
 2. **Every status shows its source.** Tap "her side: yes" and you see Miriam's message of Aug 16.
@@ -971,6 +1060,10 @@ Paused until … → Ended (by whom, why), or Engaged
    exactly what was sent.
 8. **No invented dates.** An entry pasted without a time says "pasted Oct 4", until you set the
    real time.
+9. **Permanent IDs.** Rounds, dates and open items are always referred to by their ID, never
+   guessed from the order things happened in.
+10. **The ledger stays out of sight.** You see statuses, dates and History lines. The entries,
+    changes and IDs are underneath, and you only need them for checking.
 
 ### 9.7 The screens (rough sketches, not the design)
 
@@ -990,27 +1083,42 @@ Today
 Memos · Recently added · Backup
 ```
 
-**The shidduch page**, on Aug 23:
+**The shidduch page**, on Aug 23. The first tab shows only what you asked for:
+
+- the pair and the current stage
+- my status and her status
+- what I'm waiting on
+- the next action
+- a summary of the dates
+- recent History
 
 ```
 ‹  Me ↔ Leah                  ב״ה
-   Dating · after date 1 (Aug 20)
-   Me: continue · Leah: unsure
-   From Miriam, Aug 3
-   Through Miriam → her mother
+   Dating · after Date 1
+ Overview · Dates · History · People
+ My status   Continue (Date 1)
+ Her status  Unsure (Date 1)
+             via Miriam, Aug 23
+ Waiting on  Miriam · her feedback
+             on Date 1 · 3 days
+ Next        Nothing to do: wait
+             for Miriam
+ Dates       1 · Thu Aug 20 · lobby ›
+ Recent
+   Aug 23  Miriam: "She's thinking."
+   Aug 21  Me → Miriam: "It went…"
+ Through Miriam → Rachel (mother)
    Call · Email · WhatsApp · SMS
- Waiting on Miriam: her feedback
- Date 1 · Thu Aug 20 · lobby
-   me: continue · her: unsure ›
- History
-   Aug 23  Miriam → Me · WhatsApp
-           "She's thinking."
-           Leah's side: unsure
-   Aug 21  Me → Miriam · call
-           "It went well, I'd…"
-   …
  [ Note…                    (mic) ]
 ```
+
+Everything deeper is one tap away:
+
+- **Dates:** each date taps through to everything that points to its ID: set up, moved, happened,
+  both sides' feedback, notes.
+- **History:** the full story, by round.
+- **People:** who suggested it, the go-betweens, the friends asked, the references.
+- The ledger itself, with its IDs, is never on these pages.
 
 **Leah's person page** is PeerMatch's page as it is, plus one line under the header:
 
@@ -1125,6 +1233,7 @@ Call ended — add a status update?
 | Home: recently added, backup, My profile and who has it | worked out from people and entries |
 | Suggested to me (Yes / No) | the switch for the Me ↔ her shidduch |
 | The Ideas for me folder | the girls I have a shidduch with, each showing its stage |
+| Shidduchim in shadchan mode (decided) | shown next to Guys and Girls, but it's a view generated from the shidduch records, not a folder of people |
 | Modes, I am | the same data; only which lists show changes |
 | Phones, email, age, looking for, how well I know them… | person facts |
 
@@ -1189,18 +1298,103 @@ Call ended — add a status update?
 
 ---
 
-## 11. Decisions for you
+## 11. Decisions (answered by the owner, 2026-10-04)
 
-1. **Which architecture?** I recommend **C**, with a real shidduch record and directly edited
-   facts.
-   - Choosing it means the app asks one-tap questions at the right moments, such as "Is this her
-     answer? Yes / No".
-2. **Automatic waiting and to-dos (9.4):** turn them on, or keep only the manual Waiting button and
-   Calls due?
-3. **Where shidduchim are listed.**
-   - In single mode, Home shows the active ones, and the "Ideas for me" folder shows them all.
-   - In shadchan mode, should there be a "Shidduchim" folder next to Guys and Girls?
-4. **A shidduch suggested again after it ended:** reopen it as round 2 (my recommendation), or
-   start a new one?
-5. **Next step:** a quick clickable mock with made-up data, so you can try it on the phone before
-   anything is built? It would have Home, one shidduch page and one person page.
+1. **Architecture C: yes.** One ledger is the source of truth. An event is written once and
+   appears everywhere it belongs, with two changes:
+   - a person's facts (phone, age, checkboxes and so on) stay directly editable
+   - every pair gets one real Shidduch record, with its own page
+2. **Automatic waiting and to-dos: yes, and quiet** (9.4).
+   - The app knows by itself when:
+     - I sent a profile asking for an opinion: I'm waiting on that person
+     - a date happened: feedback is outstanding
+     - someone asked me for a photo or an answer: I owe them
+   - There is no CRM task system to keep up by hand, and no nagging reminders or popups. Home
+     simply shows what is outstanding.
+   - The manual Waiting button stays, as an override for unusual cases.
+3. **Shidduchim in shadchan mode: yes.** It appears next to Guys and Girls, but it is a view
+   generated from the Shidduch records, not a normal folder of people.
+4. **An ended shidduch suggested again: reopen it as Round 2** (9.5). There is one permanent
+   record per pair. The old History stays visible, and the new round is clearly separated.
+5. **A clickable prototype: yes**, before any real programming (section 12).
+   - It has made-up data and is phone-friendly.
+   - It must let the owner walk through a realistic, complicated workflow, not just look at
+     static screens.
+
+The owner also set one UI rule and two data rules:
+
+- **The ledger stays mostly invisible.** The shidduch page shows the pair, the stage, my status,
+  her status, what I'm waiting on, the next action, a date summary and recent History. Everything
+  deeper is behind tabs or tap-through screens (9.7).
+- **Every date has a permanent ID** (9.2). Every entry about a date points to that ID: set up,
+  moved, moved again, cancelled, happened, both sides' feedback, notes and the place. Nothing is
+  matched to a date by time order alone.
+- **Every open item has a permanent ID** (9.2). A reply closes the exact item it answers, never
+  just "the latest waiting item".
+
+## 12. The clickable prototype
+
+`prototype/shidduch-flow.html` is one self-contained page with made-up data. It loads nothing
+from other sites, so it works offline and behind NetSpark. It is **not** the production app:
+nothing is saved beyond the phone's browser, and nothing is ever sent.
+
+**What it proves.** The whole model runs underneath: the ledger, the permanent IDs, the worked-out
+statuses, the quiet open items. On screen it should still feel like a few simple pages.
+
+**The story it walks through.** A small guide bar at the top shows the next step. Steps that
+happen outside the app have a **Make it happen** button: a message arriving from Miriam, or
+Moshe calling back. Steps that you do yourself just say what to do. Every step also has **Do it
+for me**, in case you get stuck.
+
+1. Leah's profile arrives (shared from WhatsApp into the Intake folder).
+2. File it: an idea for me, and who sent it (Miriam).
+3. Ask my friend Moshe for his opinion.
+4. Moshe calls back with his opinion.
+5. Tell Miriam: yes, I'm interested.
+6. Wait for her side. Miriam writes that the mother is looking into it, and asks for my newest
+   profile.
+7. Send Miriam my newest profile. This closes only that item; the wait for her side stays open.
+8. Her side says yes.
+9. Miriam sets Date 1.
+10. Date 1 is moved.
+11. Date 1 happens.
+12. Record my feedback, and tell Miriam.
+13. Wait for her feedback: "she's thinking" keeps the wait open.
+14. Her feedback comes back: she'd like a second date.
+15. Set up Date 2.
+
+After that, five optional extra steps continue the story:
+
+- Rivka suggests the same Leah. zugbase sees she is already here, and the suggestion joins the
+  current round.
+- Date 2 happens.
+- A pause: open items close, and one quiet check-in waits for the date.
+- Round 1 ends: who ended it, and why.
+- A year later, Chana suggests Leah again, and Round 2 opens on the same record. Round 1 stays
+  visible below it.
+
+**What is simulated.** A message "arriving" is placed in the Intake folder, as a WhatsApp share
+would be. A call "ending" opens the after-call popup. Sending only records the entry; the
+prototype never opens WhatsApp. The made-up clock moves forward with each step, so "waiting
+3 days" and "did Date 1 happen?" appear at the right moments.
+
+**Checked before publishing.** The whole story was run by an automated test at phone width, with
+real taps on real buttons:
+
+- Every step completed, and every open item was closed by the entry that answers it. Sending the
+  profile closed only "I owe Miriam my newest profile". "She's thinking" left the wait open, and
+  "she'd like a second date" closed it.
+- Date 1's page lists every entry that points to its ID: set up, moved, happened, my feedback,
+  what I told Miriam, "unsure", "continue".
+- Undo, reloading the page halfway, and "Do it for me" on every step all worked, with no errors.
+
+Progress is saved only in that phone's browser. "Start over" in the story sheet resets it, with
+Undo.
+
+**Behind the scenes.** A separate screen, reached from the guide, shows the raw ledger:
+
+- every entry, with its changes
+- every date, with its ID and the entries that point to it
+- every open item, with its ID, the entry that opened it and the entry that closed it
+
+It's there for checking the model, not for daily use.

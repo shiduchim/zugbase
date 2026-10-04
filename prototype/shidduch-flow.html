@@ -1,0 +1,1353 @@
+<title>Shidduch Flow Prototype</title>
+<meta name="description" content="Clickable zugbase prototype with made-up data: one ledger underneath, simple shidduch pages on top.">
+<style>
+/* Layout: one phone-width column. A thin story guide is pinned on top; tabs (or the note bar on
+   detail pages) are pinned at the bottom; every form opens as a bottom sheet. */
+:root{
+  --bg:#f3f2ee; --card:#ffffff; --ink:#1b3349; --muted:#687784; --line:#e0ddd6;
+  --accent:#2f5a78; --on-accent:#ffffff; --soft:#e6eff5; --soft-ink:#21445c;
+  --wait:#fff1c9; --wait-ink:#6b4c10; --wait-line:#e8cf86;
+  --owe:#e3eef7; --owe-ink:#1d4566; --owe-line:#c4d8e9;
+  --good:#e3f2e7; --good-ink:#1f5636; --bad:#f7e6e4; --bad-ink:#86302b;
+  --story:#1c3549; --story-ink:#eef3f7; --story-dim:#a6bacb;
+  --me:#edf3f8; --scrim:#0b151d99; --code:#5d6c78;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Noto Sans Hebrew",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11191f; --card:#19232c; --ink:#e2eaf0; --muted:#94a4b1; --line:#2a3743;
+    --accent:#86b5d8; --on-accent:#0e1820; --soft:#1f3140; --soft-ink:#cfe2ef;
+    --wait:#3a2f15; --wait-ink:#f0d388; --wait-line:#5c4c20;
+    --owe:#1b2e3d; --owe-ink:#bcd7ec; --owe-line:#2d4659;
+    --good:#173020; --good-ink:#9fd7ae; --bad:#3a1e1c; --bad-ink:#f0aaa3;
+    --story:#0a141d; --story-ink:#e2eaf0; --story-dim:#8aa1b3;
+    --me:#1d2a35; --scrim:#000000aa; --code:#a3b3bf; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11191f; --card:#19232c; --ink:#e2eaf0; --muted:#94a4b1; --line:#2a3743;
+  --accent:#86b5d8; --on-accent:#0e1820; --soft:#1f3140; --soft-ink:#cfe2ef;
+  --wait:#3a2f15; --wait-ink:#f0d388; --wait-line:#5c4c20;
+  --owe:#1b2e3d; --owe-ink:#bcd7ec; --owe-line:#2d4659;
+  --good:#173020; --good-ink:#9fd7ae; --bad:#3a1e1c; --bad-ink:#f0aaa3;
+  --story:#0a141d; --story-ink:#e2eaf0; --story-dim:#8aa1b3;
+  --me:#1d2a35; --scrim:#000000aa; --code:#a3b3bf; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.42 var(--font);-webkit-text-size-adjust:100%}
+body.noscroll{overflow:hidden}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#wrap{max-width:480px;margin:0 auto;padding-inline:16px;padding-block:6px calc(88px + env(safe-area-inset-bottom,0px))}
+
+/* story guide */
+#storybar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--story);color:var(--story-ink)}
+.sb{max-width:480px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:8px 16px;width:100%;border:0;background:none;color:inherit;text-align:left}
+.sb .n{font-size:12px;color:var(--story-dim);white-space:nowrap}
+.sb .t{flex:1;min-width:0;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb .c{font-size:12px;color:var(--story-dim);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* bottom bars */
+#tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#tabs .in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+#tabs button{border:0;background:none;padding:11px 4px 12px;font-size:13px;font-weight:700;color:var(--muted)}
+#tabs button[aria-current="page"]{color:var(--accent)}
+.badge{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--wait);color:var(--wait-ink);font-size:11px;line-height:18px;margin-left:3px;font-weight:800}
+#notebar{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--bg);border-top:1px solid var(--line);padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px))}
+#notebar .in{max-width:480px;margin:0 auto;display:flex;gap:8px}
+#notebar input{flex:1;min-width:0;height:42px;border-radius:21px;border:1px solid var(--line);background:var(--card);padding:0 16px}
+.round{width:42px;height:42px;border-radius:50%;border:0;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;flex:none}
+
+/* headers */
+.top{display:flex;align-items:center;gap:10px;padding-block:8px 2px}
+.back{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;flex:none;color:var(--ink)}
+.title{flex:1;min-width:0;font-size:21px;font-weight:800;line-height:1.15;text-wrap:balance}
+.bh{font-size:12px;color:var(--muted);text-align:right;line-height:1.3}
+.sub{font-size:13px;color:var(--muted)}
+h2{font-size:13.5px;font-weight:750;color:var(--muted);margin:18px 2px 6px}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}
+.pill{font-size:12.5px;font-weight:700;background:var(--soft);color:var(--soft-ink);border-radius:8px;padding:2px 8px}
+.pill.wait{background:var(--wait);color:var(--wait-ink)}
+.pill.good{background:var(--good);color:var(--good-ink)}
+.pill.end{background:var(--line);color:var(--muted)}
+
+/* cards and rows */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px}
+.list{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:0;border-top:1px solid var(--line);width:100%;text-align:left;background:none}
+.row:first-child{border-top:0}
+.row .main{flex:1;min-width:0}
+.row .l1{font-weight:700;font-size:14.5px}
+.row .l2{font-size:13px;color:var(--muted)}
+.row .end{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.row.wait{background:var(--wait)}
+.row.wait .l2,.row.wait .end{color:var(--wait-ink)}
+.chev{color:var(--muted);font-size:18px;line-height:1}
+.tag{display:inline-block;font-size:11px;font-weight:800;padding:1px 6px;border-radius:6px;margin-right:6px;vertical-align:1px}
+.tag.w{background:var(--wait);color:var(--wait-ink);border:1px solid var(--wait-line)}
+.tag.o{background:var(--owe);color:var(--owe-ink);border:1px solid var(--owe-line)}
+.tag.d{background:var(--soft);color:var(--soft-ink)}
+.empty{padding:12px;color:var(--muted);font-size:13.5px}
+.link{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;margin-top:8px;text-align:left;font-size:14px}
+.link .main{flex:1;min-width:0}
+.intro{padding:12px 14px;margin-top:8px}
+.intro p{margin:0 0 8px;font-size:14px}
+
+/* buttons, chips, yes/no */
+.btn{border:0;border-radius:10px;background:var(--soft);color:var(--soft-ink);padding:7px 12px;font-size:13.5px;font-weight:700;line-height:1.2}
+.btn.pri{background:var(--accent);color:var(--on-accent)}
+.btn.sm{padding:5px 9px;font-size:12.5px}
+.btn.ghost{background:none;color:var(--accent);padding:6px 2px}
+.btn.quiet{background:none;color:var(--muted);padding:6px 2px;font-weight:600}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.contact{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:8px}
+.contact.four{grid-template-columns:repeat(4,1fr)}
+.contact .btn{padding:9px 2px;font-size:12px;text-align:center}
+.contact .btn.on{background:var(--wait);color:var(--wait-ink);box-shadow:inset 0 0 0 1px var(--wait-line)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13.5px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.yn{display:inline-flex;gap:4px;flex:none}
+.yn button{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:4px 10px;font-size:12.5px;font-weight:750;color:var(--muted)}
+.yn button.y[aria-pressed="true"]{background:var(--good);color:var(--good-ink);border-color:var(--good)}
+.yn button.n[aria-pressed="true"]{background:var(--soft);color:var(--soft-ink);border-color:var(--soft)}
+
+/* shidduch overview */
+.seg{display:flex;gap:3px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:3px;margin-block:10px 10px}
+.seg button{flex:1;border:0;background:none;border-radius:8px;padding:7px 2px;font-size:13px;font-weight:700;color:var(--muted)}
+.seg button[aria-current="true"]{background:var(--soft);color:var(--soft-ink)}
+.kvr{display:grid;grid-template-columns:86px 1fr;gap:10px;padding:9px 12px;border-top:1px solid var(--line);align-items:start}
+.kvr:first-child{border-top:0}
+.kvr .k{color:var(--muted);font-size:13px;padding-top:1px}
+.kvr .v{font-size:14.5px;min-width:0}
+.kvr .v small{display:block;color:var(--muted);font-size:12.5px;line-height:1.35}
+.kvr.wait{background:var(--wait)}
+.kvr.wait .k,.kvr.wait small{color:var(--wait-ink)}
+.kvr .v .btn{margin-top:6px}
+.dl{display:flex;justify-content:space-between;gap:8px;width:100%;border:0;background:none;padding:2px 0;text-align:left;font-size:14px}
+.dl+.dl{margin-top:4px}
+.gb{padding:10px 12px;margin-top:10px}
+
+/* history entries */
+.ent{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 11px;margin-top:6px;display:block;width:100%;text-align:left}
+.ent.out{margin-left:26px;width:calc(100% - 26px);background:var(--me)}
+.ent.sys{background:none;border-style:dashed}
+.ent .meta{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+.ent .who{font-size:13px;font-weight:750;margin-top:1px}
+.ent .words{font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:2px}
+.ent .words.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.ent .res{margin-top:4px;font-size:12.5px;color:var(--accent);font-weight:650;line-height:1.4}
+.ent .res .q{color:var(--muted);font-weight:500}
+.files{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.file{font-size:11.5px;font-weight:750;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--muted)}
+.rh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:16px 2px 2px;padding-top:10px;border-top:2px solid var(--line);width:100%;border-left:0;border-right:0;border-bottom:0;background:none;text-align:left}
+.rh b{font-size:14px}
+.rh span{font-size:12.5px;color:var(--muted)}
+
+/* sheets */
+#sheetwrap{position:fixed;inset:0;z-index:40}
+.scrim{position:absolute;inset:0;background:var(--scrim);border:0;width:100%}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:92%;overflow:auto;background:var(--bg);border-radius:18px 18px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom,0px));max-width:480px;margin:0 auto;overscroll-behavior:contain}
+.sh-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sh-h h3{flex:1;margin:0;font-size:17px;font-weight:800;line-height:1.25}
+.lbl{font-size:13px;color:var(--muted);margin:12px 2px 5px}
+input[type=text],input[type=date],input[type=time],textarea{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 12px;width:100%;min-width:0}
+textarea{min-height:78px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.orig{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;max-height:200px;overflow:auto}
+.orig .meta{font-size:12px;color:var(--muted);margin-bottom:4px}
+.orig .words{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}
+.props{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.prop{display:flex;align-items:flex-start;gap:10px;padding:9px 11px;border-top:1px solid var(--line)}
+.prop:first-child{border-top:0}
+.prop .main{flex:1;min-width:0;font-size:14px}
+.prop .main small{display:block;font-size:12.5px;color:var(--muted)}
+.prop .inline{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.prop .inline input{width:auto;flex:1 1 120px;padding:6px 9px}
+.note{font-size:12.5px;color:var(--muted);margin:8px 2px 0}
+.warnc{background:var(--wait);color:var(--wait-ink);border:1px solid var(--wait-line);border-radius:12px;padding:10px 12px;margin-top:10px;font-size:14px}
+.actions{display:flex;gap:8px;margin-top:16px}
+.actions .btn{flex:1;padding:11px 12px;font-size:15px}
+.steps{margin:10px 0 0;padding:0;list-style:none}
+.steps li{display:flex;gap:8px;padding:5px 2px;font-size:13.5px;color:var(--muted)}
+.steps li b{width:22px;flex:none;text-align:right;font-variant-numeric:tabular-nums}
+.steps li.done{color:var(--good-ink)}
+.steps li.cur{color:var(--ink);font-weight:750}
+.now{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.now .t{font-size:16px;font-weight:800;margin:2px 0 4px}
+.now p{margin:0;font-size:14px}
+
+/* toast and the ledger view */
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--story);color:var(--story-ink);border-radius:12px;padding:9px 12px;display:flex;gap:12px;align-items:center;font-size:13.5px;width:max-content;max-width:calc(100% - 32px)}
+#toast button{background:none;border:0;color:var(--story-ink);font-weight:800;text-decoration:underline;padding:0}
+.lg{font:12px/1.45 var(--mono);color:var(--code);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px;overflow-x:auto}
+.lg div{white-space:pre-wrap;overflow-wrap:anywhere;padding:3px 0;border-top:1px dashed var(--line)}
+.lg div:first-child{border-top:0}
+.lg b{color:var(--ink)}
+.photo{aspect-ratio:3/4;max-width:100%;width:220px;margin:8px auto 0;border-radius:14px;background:linear-gradient(160deg,var(--soft),var(--owe));display:grid;place-items:center;color:var(--muted);font-size:13px}
+@media (prefers-reduced-motion: no-preference){ .sheet{animation:up .18s ease-out} @keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}} }
+</style>
+
+<div id="storybar"></div>
+<div id="wrap"><main id="screen"></main></div>
+<nav id="tabs" aria-label="Main"></nav>
+<form id="notebar" hidden></form>
+<div id="sheetwrap" hidden></div>
+<div id="toast" hidden></div>
+
+<script>
+(function(){
+'use strict';
+/* =====================================================================
+   zugbase prototype. Made-up people only. Nothing is sent, nothing leaves
+   this page. Underneath: ONE ledger (entries). Rounds, dates and open items
+   get permanent IDs; their state is worked out from the entries that name
+   those IDs. Person facts are edited directly.
+   ===================================================================== */
+const KEY='zugbase-shidduch-flow-1';
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const T=(y,m,d,h=12,mi=0)=>new Date(y,m-1,d,h,mi).getTime();
+const pad=n=>String(n).padStart(2,'0');
+const yr=d=>d.getFullYear()!==new Date(S.clock).getFullYear()?', '+d.getFullYear():'';
+const fDay=t=>{const d=new Date(t);return DOW[d.getDay()]+' '+MON[d.getMonth()]+' '+d.getDate()+yr(d);};
+const fTime=t=>{const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes());};
+const fWhen=t=>fDay(t)+', '+fTime(t);
+const fShort=t=>{const d=new Date(t);return MON[d.getMonth()]+' '+d.getDate()+yr(d);};
+const sod=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();};
+const since=t=>{const n=Math.round((sod(S.clock)-sod(t))/864e5);return n<=0?'today':n===1?'yesterday':n+' days';};
+const waited=t=>{const n=Math.round((sod(S.clock)-sod(t))/864e5);return n<=0?'since today':n===1?'since yesterday':'for '+n+' days';};
+const dInput=t=>{const d=new Date(t);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+const fromInputs=(ds,ts)=>{const [y,m,d]=String(ds).split('-').map(Number);const [h,mi]=String(ts||'12:00').split(':').map(Number);return T(y,m,d,h||0,mi||0);};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rich=s=>esc(s).replace(/\*([^*\n]+)\*/g,'<b>$1</b>');
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+const $=s=>document.querySelector(s);
+
+let S=null, NAV=[{s:'home'}], SHEET=null, CACHE={}, TOAST=null;
+const dirty=()=>{CACHE={};};
+const nid=p=>{S.seq++;return p+S.seq;};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function load(){try{const t=localStorage.getItem(KEY);if(t){const o=JSON.parse(t);if(o&&o.v===1)return o;}}catch(e){}return null;}
+
+/* ---------------- the ledger ---------------- */
+function E(id){return S.entries.find(e=>e.id===id);}
+function record(e){
+  e.id=e.id||nid('e'); if(e.at==null)e.at=S.clock; e.prec=e.prec||'exact'; e.rec=S.clock; S.ord=(S.ord||0)+1; e.ord=S.ord;
+  e.to=e.to||[]; e.about=e.about||{}; e.about.p=e.about.p||[]; e.about.s=e.about.s||[]; e.c=e.c||[]; e.files=e.files||[]; e.rounds=e.rounds||{};
+  if(e.filed===undefined)e.filed=true;
+  S.entries.push(e); if(e.filed)bind(e); dirty(); return e;
+}
+/* the dates an entry concerns, always by permanent ID (never by time order) */
+function dateRefs(e){const d=new Set();for(const c of e.c){if(c.did)d.add(c.did);if(c.t==='date.new')d.add(c.date.id);if(c.t==='item.open'&&c.item.did)d.add(c.item.did);if(c.t==='item.close'&&S.items[c.iid]&&S.items[c.iid].did)d.add(S.items[c.iid].did);}e.about.d=[...d];}
+/* identity records are created by the entry that first names them */
+function bind(e){
+  e.about=e.about||{p:[],s:[]};
+  for(const c of e.c){
+    if(c.t==='person.new')S.people[c.person.id]=Object.assign({roles:[],phones:[],email:'',city:'',gender:'',age:null},c.person,{bornIn:e.id});
+    else if(c.t==='link.new')S.links[c.link.id]=Object.assign({},c.link,{bornIn:e.id});
+    else if(c.t==='ver.new')S.vers[c.ver.id]=Object.assign({},c.ver,{bornIn:e.id});
+    else if(c.t==='shid.new')S.shid[c.shid.id]=Object.assign({},c.shid,{bornIn:e.id});
+    else if(c.t==='round.open')S.rounds[c.round.id]=Object.assign({},c.round,{bornIn:e.id});
+    else if(c.t==='date.new')S.dates[c.date.id]=Object.assign({},c.date,{bornIn:e.id});
+    else if(c.t==='item.open')S.items[c.item.id]=Object.assign({},c.item,{bornIn:e.id});
+  }
+  dateRefs(e); dirty();
+}
+const liveE=e=>!!(e&&e.filed&&!e.deleted);
+const alive=x=>!!x&&(!x.bornIn||liveE(E(x.bornIn)));
+function live(){if(!CACHE.live)CACHE.live=S.entries.filter(liveE).sort((a,b)=>a.at-b.at||a.ord-b.ord);return CACHE.live;}
+function changes(){if(!CACHE.ch){const o=[];for(const e of live())for(const c of e.c)o.push({e,c});CACHE.ch=o;}return CACHE.ch;}
+
+/* ---------------- worked-out state ---------------- */
+const P=id=>S.people[id];
+const nm=id=>id==='me'?'Me':(P(id)?P(id).name:'Someone');
+const his=id=>{const g=P(id)&&P(id).gender;return g==='m'?'his':g==='f'?'her':'their';};
+const people=()=>Object.values(S.people).filter(alive);
+const shids=()=>Object.values(S.shid).filter(alive);
+const pairName=sid=>{const s=S.shid[sid];return nm(s.guy)+' ↔ '+nm(s.girl);};
+const other=sid=>{const s=S.shid[sid];return s.guy==='me'?s.girl:s.girl==='me'?s.guy:s.girl;};
+const mySide=sid=>{const s=S.shid[sid];return s.girl==='me'?'girl':'guy';};
+const theirSide=sid=>mySide(sid)==='guy'?'girl':'guy';
+const isMine=sid=>{const s=S.shid[sid];return s.guy==='me'||s.girl==='me';};
+function goBetween(sid){const s=S.shid[sid];const g=(s.go&&s.go[theirSide(sid)])||[];return g.filter(p=>alive(P(p)));}
+function sideName(sid,side){if(isMine(sid))return side===mySide(sid)?'My side':'Her side';return side==='guy'?'His side':'Her side';}
+function fbName(sid,side){if(isMine(sid))return side===mySide(sid)?'My feedback':'Her feedback';return side==='guy'?'His feedback':'Her feedback';}
+function roundsOf(sid){return Object.values(S.rounds).filter(r=>r.sid===sid&&alive(r)).sort((a,b)=>a.n-b.n);}
+function curRound(sid){const r=roundsOf(sid);return r[r.length-1];}
+function roundInfo(r){
+  const o=Object.assign({},r,{sug:[],ended:null,paused:null,start:E(r.bornIn).at});
+  for(const {e,c} of changes()){
+    if(c.rid!==r.id)continue;
+    if(c.t==='suggest')o.sug.push({by:c.by,at:e.at,also:!!c.also,e});
+    else if(c.t==='round.end')o.ended={by:c.by,why:c.why,at:e.at,e};
+    else if(c.t==='pause')o.paused={until:c.until,by:c.by,at:e.at,e};
+    else if(c.t==='resume')o.paused=null;
+  }
+  return o;
+}
+function itemInfo(id){
+  const it=S.items[id]; if(!alive(it))return null;
+  let closedBy=null; for(const {e,c} of changes())if(c.t==='item.close'&&c.iid===id){closedBy=e;break;}
+  return Object.assign({},it,{open:!closedBy,closedBy,openedBy:E(it.bornIn)});
+}
+function items(f){return Object.keys(S.items).map(itemInfo).filter(x=>x&&(!f||f(x)));}
+const openItems=f=>items(x=>x.open&&(!f||f(x)));
+function itemLine(it){if(!it)return 'an item';if(it.purpose==='call')return 'Call '+nm(it.pid)+(it.due?' · '+fShort(it.due):'');return (it.kind==='waiting'?'Waiting on ':'You owe ')+nm(it.pid)+' · '+it.what;}
+function dateInfo(did){
+  const d=S.dates[did]; if(!alive(d))return null;
+  const st=Object.assign({},d,{when:null,place:'',by:'',status:'new',moves:[],fb:{},fbHist:[],notes:[],entries:[]});
+  for(const {e,c} of changes()){
+    if(e.about.d&&e.about.d.includes(did)&&!st.entries.includes(e))st.entries.push(e);
+    const mine=(c.did===did)||(c.t==='date.new'&&c.date.id===did); if(!mine)continue;
+    if(!st.entries.includes(e))st.entries.push(e);
+    if(c.t==='date.set'){st.when=c.when;st.place=c.place||'';st.by=c.by||'';st.status='set';}
+    else if(c.t==='date.move'){st.moves.push({from:st.when,to:c.when,by:c.by,e});st.when=c.when;if(c.place)st.place=c.place;st.status='set';}
+    else if(c.t==='date.cancel')st.status='cancelled';
+    else if(c.t==='date.happened')st.status='happened';
+    else if(c.t==='date.fb'){st.fb[c.side]={val:c.val,e,words:c.words};st.fbHist.push({side:c.side,val:c.val,e});}
+    else if(c.t==='date.note')st.notes.push(e);
+  }
+  return st;
+}
+function datesOf(sid,rid){return Object.values(S.dates).filter(d=>d.sid===sid&&(!rid||d.rid===rid)&&alive(d)).sort((a,b)=>a.n-b.n).map(d=>dateInfo(d.id));}
+const nextDateN=(sid,rid)=>datesOf(sid,rid).reduce((m,d)=>Math.max(m,d.n),0)+1;
+function sideInfo(sid,rid,side){
+  let best=null;
+  for(const {e,c} of changes()){
+    if(c.t==='side'&&c.sid===sid&&c.rid===rid&&c.side===side)best={val:c.val,e,words:c.words};
+    else if(c.t==='date.fb'&&c.side===side){const d=S.dates[c.did];if(d&&d.sid===sid&&d.rid===rid)best={val:c.val,e,words:c.words,dn:d.n};}
+  }
+  return best;
+}
+const VAL={thinking:'Thinking',questions:'Has questions',yes:'Yes',notnow:'Not now',no:'No',continue:'Continue',unsure:'Unsure',stop:'Stop'};
+const byText=(sid,b)=>b==='guy'||b==='girl'?(isMine(sid)&&b===mySide(sid)?'by me':'by her side'):b==='me'?'by me':b?'by '+nm(b):'';
+function stageInfo(sid){
+  const r=curRound(sid); const ri=roundInfo(r);
+  if(ri.ended)return {k:'end',t:'Ended '+byText(sid,ri.ended.by)+(ri.ended.why?' · '+ri.ended.why:'')};
+  if(ri.paused&&ri.paused.until>S.clock)return {k:'wait',t:'Paused until '+fShort(ri.paused.until)};
+  const ds=datesOf(sid,r.id);
+  const due=ds.find(d=>d.status==='set'&&d.when<=S.clock);
+  const up=ds.find(d=>d.status==='set'&&d.when>S.clock);
+  const last=[...ds].reverse().find(d=>d.status==='happened');
+  if(due)return {k:'wait',t:'Did Date '+due.n+' happen?'};
+  if(up)return {k:'good',t:(last?'Dating · ':'')+'Date '+up.n+' on '+fDay(up.when)};
+  if(last)return {k:'good',t:'Dating · after Date '+last.n};
+  const me=sideInfo(sid,r.id,mySide(sid)), th=sideInfo(sid,r.id,theirSide(sid));
+  if(th&&th.val==='no')return {k:'end',t:'Her side said no'};
+  if(th&&th.val==='notnow')return {k:'wait',t:'Her side: not now'};
+  const my=me&&me.val==='yes', ty=th&&th.val==='yes';
+  if(my&&ty)return {k:'good',t:'Both said yes · set up Date 1'};
+  if(my)return {k:'wait',t:isMine(sid)?'Waiting for her side':'Waiting for her side'};
+  if(ty)return {k:'wait',t:isMine(sid)?'Waiting for your answer':'Waiting for his side'};
+  if((me&&me.val!=='yes')||(th&&th.val!=='yes')||openItems(i=>i.sid===sid&&i.purpose==='opinion').length)return {k:'',t:'Checking'};
+  return {k:'',t:'New idea'};
+}
+function shidActive(sid){const r=curRound(sid);return !roundInfo(r).ended;}
+/* the next action, worked out (never typed) */
+function nextInfo(sid){
+  const r=curRound(sid), ri=roundInfo(r);
+  if(ri.ended)return {t:'Nothing open. This round has ended.'};
+  const owe=openItems(i=>i.sid===sid&&i.kind==='owe').sort((a,b)=>a.openedBy.at-b.openedBy.at);
+  if(owe[0])return {t:cap(oweVerb(owe[0])),act:'item',arg:owe[0].id,btn:oweBtn(owe[0])};
+  const ds=datesOf(sid,r.id);
+  const due=ds.find(d=>d.status==='set'&&d.when<=S.clock);
+  if(due)return {t:'Did Date '+due.n+' happen?',act:'happened',arg:due.id,btn:'Answer'};
+  const lastH=[...ds].reverse().find(d=>d.status==='happened');
+  if(lastH&&!lastH.fb[mySide(sid)]&&isMine(sid))return {t:'Your feedback on Date '+lastH.n,act:'feedback',arg:lastH.id,btn:'Add'};
+  if(ri.paused&&ri.paused.until>S.clock)return {t:'Nothing to do until '+fShort(ri.paused.until)};
+  const up=ds.find(d=>d.status==='set'&&d.when>S.clock);
+  const me=sideInfo(sid,r.id,mySide(sid)), th=sideInfo(sid,r.id,theirSide(sid));
+  const go=x=>x&&(x.val==='yes'||x.val==='continue');
+  const wait=openItems(i=>i.sid===sid&&i.kind==='waiting').sort((a,b)=>a.openedBy.at-b.openedBy.at);
+  if(go(me)&&go(th)&&!up&&!wait.length)return {t:'Set up Date '+nextDateN(sid,r.id),act:'setDate',arg:sid,btn:'Set up'};
+  if(wait[0])return {t:'Nothing to do: wait for '+nm(wait[0].pid)};
+  if(up)return {t:'Date '+up.n+': '+fWhen(up.when)};
+  if(!me&&isMine(sid))return {t:'Give your answer',act:'answer',arg:sid,btn:'Answer'};
+  return {t:'Nothing open'};
+}
+function oweVerb(it){
+  switch(it.purpose){
+    case 'answer':return 'answer '+nm(it.pid)+' about '+nm(it.sid?other(it.sid):'');
+    case 'feedback':return 'tell '+nm(it.pid)+' '+it.what;
+    case 'thing':return 'send '+nm(it.pid)+' '+it.what;
+    case 'call':return 'call '+nm(it.pid);
+    case 'checkin':return it.what+' with '+nm(it.pid)+(it.due?' after '+fShort(it.due):'');
+    default:return 'reply to '+nm(it.pid)+': '+it.what;
+  }
+}
+function oweBtn(it){return {answer:'Answer',feedback:'Tell '+nm(it.pid),thing:'Send',call:'Call',checkin:'Message'}[it.purpose]||'Reply';}
+function versionsOf(pid){return Object.values(S.vers).filter(v=>v.pid===pid&&alive(v)).sort((a,b)=>a.at-b.at);}
+function verLabel(vid){const v=S.vers[vid];if(!v)return 'a profile';if(v.label)return v.label;const all=versionsOf(v.pid);return 'Version '+(all.indexOf(v)+1)+(v.from?' · from '+nm(v.from):'');}
+function whoHas(pid){const m={};for(const {e,c} of changes())if(c.t==='ver.sent'&&S.vers[c.vid]&&S.vers[c.vid].pid===pid)m[c.to]={vid:c.vid,at:e.at};return m;}
+const newestMine=()=>{const v=versionsOf('me');return v[v.length-1];};
+function entriesOfShid(sid){return live().filter(e=>e.about.s.includes(sid));}
+function entriesOfPerson(pid){return live().filter(e=>e.from===pid||e.to.includes(pid)||e.about.p.includes(pid));}
+const leah=()=>{const p=people().find(x=>x.tag==='leah');return p&&p.id;};
+const leahSid=()=>{const l=leah();const s=l&&shids().find(x=>x.girl===l&&x.guy==='me');return s&&s.id;};
+const tagged=t=>S.entries.find(e=>e.tag===t&&!e.deleted);
+const d1=()=>{const s=leahSid();if(!s)return null;const r=roundsOf(s)[0];return datesOf(s,r.id).find(d=>d.n===1);};
+const d2=()=>{const s=leahSid();if(!s)return null;const r=roundsOf(s)[0];return datesOf(s,r.id).find(d=>d.n===2);};
+
+/* ---------------- matching: which open item does an entry close? ---------------- */
+/* dir 'in' = a message from `who`; 'out' = my message to `who`; 'call' = a call with `who`.
+   Returns the IDs of the specific items the entry answers. Nothing is guessed from time order. */
+function closeMatches(M){
+  const res=new Set(); const sid=M.sid, who=M.who;
+  const oi=openItems(i=>i.pid===who);
+  const inn=M.dir==='in'||M.dir==='call', out=M.dir==='out'||M.dir==='call';
+  for(const iid of (M.forItems||[]))res.add(iid);
+  for(const p of (M.props||[])){
+    if(p.on===false)continue;
+    if(!sid&&p.t!=='sendVersion'&&p.t!=='opinion')continue;
+    const all=()=>openItems(i=>i.sid===sid).forEach(i=>res.add(i.id));
+    if((p.t==='side'&&p.val==='no')||(p.t==='date.fb'&&p.val==='stop')||p.t==='pause'||p.t==='end'){all();continue;}
+    if(inn&&p.t==='side'&&p.side!==mySide(sid)&&['yes','notnow'].includes(p.val))oi.filter(i=>i.kind==='waiting'&&i.purpose==='answer'&&i.sid===sid).forEach(i=>res.add(i.id));
+    if(inn&&p.t==='date.fb'&&p.side!==mySide(sid)&&p.val==='continue')oi.filter(i=>i.kind==='waiting'&&i.purpose==='feedback'&&i.did===p.did).forEach(i=>res.add(i.id));
+    if(inn&&p.t==='opinion')oi.filter(i=>i.kind==='waiting'&&i.purpose==='opinion'&&(!sid||i.sid===sid)).forEach(i=>res.add(i.id));
+    if(out&&p.t==='side'&&p.side===mySide(sid))oi.filter(i=>i.kind==='owe'&&i.purpose==='answer'&&i.sid===sid).forEach(i=>res.add(i.id));
+    if(out&&p.t==='date.fb'&&p.side===mySide(sid))oi.filter(i=>i.kind==='owe'&&i.purpose==='feedback'&&i.did===p.did).forEach(i=>res.add(i.id));
+    if(out&&p.t==='sendVersion')oi.filter(i=>i.kind==='owe'&&i.purpose==='thing').forEach(i=>res.add(i.id));
+  }
+  if(M.dir==='call'&&M.pdir!=='in')oi.filter(i=>i.kind==='owe'&&i.purpose==='call').forEach(i=>res.add(i.id));
+  if(inn&&sid)oi.filter(i=>i.kind==='waiting'&&i.purpose==='opinion'&&i.sid===sid).forEach(i=>res.add(i.id));
+  return [...res];
+}
+function closeOthers(M,matched){
+  const want=M.dir==='in'?['waiting']:M.dir==='out'?['owe']:['waiting','owe'];
+  return openItems(i=>i.pid===M.who&&want.includes(i.kind)&&!matched.includes(i.id)).map(i=>i.id);
+}
+function closeList(M){const m=closeMatches(M);const o=closeOthers(M,m);return m.filter(i=>M.closes[i]!==false).concat(o.filter(i=>M.closes[i]===true));}
+
+/* ---------------- turning one-tap choices into ledger changes ---------------- */
+function propChanges(p,sid,rid,who){
+  const end=by=>[{t:'round.end',sid,rid,by,why:''}];
+  switch(p.t){
+    case 'side':return [{t:'side',sid,rid,side:p.side,val:p.val,words:p.words||''}].concat(p.val==='no'?end(p.side):[]);
+    case 'date.set':{const did=nid('d');return [{t:'date.new',date:{id:did,sid,rid,n:nextDateN(sid,rid)}},{t:'date.set',did,when:whenOf(p),place:p.place||'',by:p.by||''}];}
+    case 'date.move':return [{t:'date.move',did:p.did,when:whenOf(p),by:p.by||''}];
+    case 'date.fb':return [{t:'date.fb',did:p.did,side:p.side,val:p.val,words:p.words||''}].concat(p.val==='stop'?end(p.side):[]);
+    case 'ask':return [{t:'item.open',item:{id:nid('o'),kind:'owe',pid:who,purpose:p.purpose||'thing',what:p.what,sid}}];
+    case 'passed':return [{t:'passed',what:p.what,toName:p.toName,sid}];
+    case 'phone':{const g=other(sid),per=P(g);if(per&&!per.phones.some(x=>x.n===p.number))per.phones.push({label:'Mobile',n:p.number});return [{t:'fact',pid:g,field:'phone',value:p.number}];}
+    case 'pause':return [{t:'pause',sid,rid,until:p.until,by:p.by||''},{t:'item.open',item:{id:nid('o'),kind:'owe',pid:who||goBetween(sid)[0],purpose:'checkin',what:'check in about '+nm(other(sid)),sid,due:p.until}}];
+    case 'end':return [{t:'round.end',sid,rid,by:p.by||'',why:p.why||''}];
+    default:return [];
+  }
+}
+const whenOf=p=>p._d?fromInputs(p._d,p._t||fTime(p.when||S.clock)):(p._t&&p.when?fromInputs(dInput(p.when),p._t):p.when);
+
+/* ---------------- actions (the UI and "Do it for me" both use these) ---------------- */
+function arrive(o){return record({filed:false,ch:'share',prec:'received',from:null,text:o.text,files:o.files||[],hint:o.hint||null,tag:o.tag||'',at:S.clock});}
+function findDup(name){const n=(name||'').trim().toLowerCase();if(!n)return null;const p=people().find(x=>x.id!=='me'&&x.name.toLowerCase()===n&&x.roles.includes('single'));if(!p)return null;const s=shids().find(x=>x.girl===p.id&&x.guy==='me');return {pid:p.id,sid:s?s.id:null};}
+function defaultShidFor(from,loose){const act=shids().filter(s=>shidActive(s.id)&&(goBetween(s.id).includes(from)||roundInfo(curRound(s.id)).sug.some(x=>x.by===from)));act.sort((a,b)=>lastAt(b.id)-lastAt(a.id));if(act[0])return act[0].id;return loose?((shids().filter(s=>shidActive(s.id))[0]||{}).id||null):null;}
+const lastAt=sid=>{const e=entriesOfShid(sid);return e.length?e[e.length-1].at:0;};
+function resolveProp(p,sid){
+  const q=Object.assign({on:true},p);
+  if(!sid)return q;
+  const r=curRound(sid), ds=datesOf(sid,r.id);
+  if(p.t==='date.move'){const d=ds.find(x=>x.status==='set');q.did=d&&d.id;}
+  if(p.t==='date.fb'&&p.target==='last'){const d=[...ds].reverse().find(x=>x.status==='happened');q.did=d&&d.id;}
+  return q;
+}
+function defaultFiling(eid){
+  const e=E(eid), h=e.hint||{};
+  const F={eid,from:h.from||null,what:h.kind==='idea'?'idea':h.kind==='update'?'about':'note',name:(h.person&&h.person.name)||'',age:(h.person&&h.person.age)||'',city:(h.person&&h.person.city)||'',tag:(h.person&&h.person.tag)||'',contacts:(h.contacts||[]).map(k=>Object.assign({on:true},k)),props:[],closes:{},sid:null,same:true,dup:null,newName:''};
+  if(F.what==='idea')F.dup=findDup(F.name);
+  if(F.what==='about'){F.sid=(h.shidTag==='leah'&&leahSid())||defaultShidFor(F.from,true);F.props=(h.props||[]).map(p=>resolveProp(p,F.sid));}
+  return F;
+}
+function fileModel(F){return {dir:'in',who:F.from,sid:F.sid,props:F.props,closes:F.closes};}
+function commitFiling(F){
+  const e=E(F.eid); if(!e)return;
+  if(F.from==='__new'&&F.newName.trim()){const id=nid('p');S.people[id]={id,name:F.newName.trim(),roles:['shadchan'],phones:[],gender:'f'};F.from=id;}
+  if(F.from==='__new')F.from=null;
+  e.from=F.from; e.to=['me']; if(e.ch==='share')e.ch=e.hint?'whatsapp':'pasted';
+  const c=[];
+  if(F.what==='idea'){
+    const name=F.name.trim()||'New idea'; let pid,sid,rid;
+    const oweAns=()=>F.from?[{t:'item.open',item:{id:nid('o'),kind:'owe',pid:F.from,purpose:'answer',what:'your answer about '+name,sid}}]:[];
+    if(F.dup&&F.same){
+      pid=F.dup.pid; sid=F.dup.sid;
+      if(sid){const r=curRound(sid);if(roundInfo(r).ended){rid=nid('r');c.push({t:'round.open',round:{id:rid,sid,n:r.n+1}},{t:'suggest',sid,rid,by:F.from});c.push(...oweAns());}else{rid=r.id;c.push({t:'suggest',sid,rid,by:F.from,also:true});}}
+      else{sid=nid('s');rid=nid('r');c.push({t:'shid.new',shid:{id:sid,guy:'me',girl:pid,go:{guy:[],girl:F.from?[F.from]:[]}}},{t:'round.open',round:{id:rid,sid,n:1}},{t:'suggest',sid,rid,by:F.from});c.push(...oweAns());}
+    }else{
+      pid=nid('p'); c.push({t:'person.new',person:{id:pid,name,roles:['single'],gender:'f',age:F.age?{value:+F.age,asOf:e.at}:null,city:F.city||'',phones:[],tag:F.tag||''}});
+      const go=F.from?[F.from]:[];
+      for(const k of F.contacts){if(k.on===false)continue;const cid=nid('p');c.push({t:'person.new',person:{id:cid,name:k.name,roles:[k.rel==='reference'?'reference':'contact'],gender:k.rel==='mother'?'f':'',phones:k.phone?[{label:'Mobile',n:k.phone}]:[]}});c.push({t:'link.new',link:{id:nid('l'),a:cid,b:pid,kind:k.rel}});if(k.rel==='mother'||k.rel==='father')go.push(cid);}
+      sid=nid('s');rid=nid('r');
+      c.push({t:'shid.new',shid:{id:sid,guy:'me',girl:pid,go:{guy:[],girl:go}}},{t:'round.open',round:{id:rid,sid,n:1}},{t:'suggest',sid,rid,by:F.from});
+      c.push(...oweAns());
+    }
+    const vid=nid('v'); c.unshift({t:'ver.new',ver:{id:vid,pid,lang:'English',label:'',text:e.text,files:e.files,at:e.at,from:F.from}});
+    e.ver=vid; e.about={p:[F.from,pid].filter(Boolean),s:[sid]}; e.rounds={[sid]:rid};
+  }else if(F.what==='about'&&F.sid){
+    const sid=F.sid, rid=curRound(sid).id;
+    const cl=closeList(fileModel(F));
+    for(const p of F.props)if(p.on!==false)c.push(...propChanges(p,sid,rid,F.from));
+    for(const iid of cl)c.push({t:'item.close',iid});
+    e.about={p:[F.from,other(sid)].filter(Boolean),s:[sid]}; e.rounds={[sid]:rid};
+  }else if(F.what==='single'||F.what==='shadchan'){
+    const pid=nid('p'); c.push({t:'person.new',person:{id:pid,name:F.name.trim()||'New person',roles:[F.what],gender:F.what==='single'?'f':'f',phones:[]}});
+    e.about={p:[F.from,pid].filter(Boolean),s:[]};
+  }else{ e.about={p:[F.from].filter(Boolean),s:[]}; }
+  e.c=c; e.filed=true; bind(e);
+}
+function defaultShare(o){
+  const subj=o.subject, mine=subj==='me', vers=versionsOf(subj);
+  const ver=o.ver||(mine?(newestMine()||{}).id:(vers[vers.length-1]||{}).id);
+  const to=o.to||null;
+  const why=o.why||(to&&P(to)&&P(to).roles.includes('friend')?'opinion':'just');
+  const M={subject:subj,sid:o.sid||null,to,why,ver,photo:mine,ch:'whatsapp',text:'',textEdited:false,closes:{},forItems:o.forItems||[]};
+  M.text=o.text||shareText(M); return M;
+}
+function shareText(M){if(M.subject==='me')return 'Here is my newest profile.';if(M.why==='opinion')return 'What do you think about this idea for me?';if(M.why==='suggest')return 'An idea: '+nm(M.subject)+'. What do you think?';return nm(M.subject)+"'s profile.";}
+function shareModel(M){return {dir:'out',who:M.to,sid:M.sid,props:[{t:'sendVersion'}],forItems:M.forItems,closes:M.closes};}
+function commitShare(M){
+  if(!M.to)return false;
+  const v=S.vers[M.ver]; const files=((v&&v.files)||[]).filter(f=>f.kind!=='photo'||M.photo);
+  const sid=M.sid, rid=sid?curRound(sid).id:null;
+  const cl=closeList(shareModel(M));
+  const c=[{t:'ver.sent',vid:M.ver,to:M.to}];
+  if(M.why==='opinion')c.push({t:'item.open',item:{id:nid('o'),kind:'waiting',pid:M.to,purpose:'opinion',what:his(M.to)+' opinion on '+nm(M.subject),sid}});
+  if(M.why==='suggest')c.push({t:'item.open',item:{id:nid('o'),kind:'waiting',pid:M.to,purpose:'answer',what:'an answer about '+nm(M.subject),sid}});
+  for(const iid of cl)c.push({t:'item.close',iid});
+  record({from:'me',to:[M.to],ch:M.ch,text:M.text,ver:M.ver,files,about:{p:[M.to,M.subject].filter(x=>x!=='me'),s:sid?[sid]:[]},rounds:sid?{[sid]:rid}:{},c});
+  return true;
+}
+function defaultCompose(o){return {to:o.to,sid:o.sid||null,ch:o.ch||'whatsapp',text:o.text||'',props:(o.props||[]).map(p=>Object.assign({on:true},p)),closes:{},forItems:o.forItems||[],title:o.title||''};}
+function composeModel(M){return {dir:'out',who:M.to,sid:M.sid,props:M.props,forItems:M.forItems,closes:M.closes};}
+function commitCompose(M){
+  const sid=M.sid, rid=sid?curRound(sid).id:null;
+  const cl=closeList(composeModel(M));
+  const c=[];
+  if(sid)for(const p of M.props)if(p.on!==false)c.push(...propChanges(p,sid,rid,M.to));
+  for(const iid of cl)c.push({t:'item.close',iid});
+  if(sid&&isMine(sid)){
+    const yes=M.props.some(p=>p.on!==false&&p.t==='side'&&p.side===mySide(sid)&&p.val==='yes');
+    if(yes&&!openItems(i=>i.kind==='waiting'&&i.purpose==='answer'&&i.sid===sid).length)c.push({t:'item.open',item:{id:nid('o'),kind:'waiting',pid:M.to,purpose:'answer',what:nm(other(sid))+"'s answer",sid}});
+  }
+  record({from:'me',to:[M.to],ch:M.ch,text:M.text,about:{p:[M.to].concat(sid?[other(sid)]:[]),s:sid?[sid]:[]},rounds:sid?{[sid]:rid}:{},c});
+}
+function defaultCall(pid,o){
+  o=o||{};
+  const op=openItems(i=>i.pid===pid&&i.purpose==='opinion')[0];
+  const sid=(op&&op.sid)||defaultShidFor(pid)||null;
+  return {pid,pdir:o.dir||'out',sid,note:'',suggest:o.suggest||'',props:[],answered:true,closes:{}};
+}
+function callModel(M){return {dir:'call',pdir:M.pdir,who:M.pid,sid:M.sid,props:M.props,closes:M.closes};}
+function commitCall(M){
+  const sid=M.sid, rid=sid?curRound(sid).id:null;
+  const cl=closeList(callModel(M)); const c=[];
+  if(sid)for(const p of M.props)if(p.on!==false)c.push(...propChanges(p,sid,rid,M.pid));
+  for(const iid of cl)c.push({t:'item.close',iid});
+  const inn=M.pdir==='in';
+  record({from:inn?M.pid:'me',to:[inn?'me':M.pid],ch:'call',text:M.note,answered:M.answered,about:{p:[M.pid].concat(sid?[other(sid)]:[]),s:sid?[sid]:[]},rounds:sid?{[sid]:rid}:{},c});
+}
+function noteEntry(sid,text,c,extraP){const rid=sid?curRound(sid).id:null;return record({from:'me',to:[],ch:'note',text,about:{p:(sid?[other(sid)]:[]).concat(extraP||[]),s:sid?[sid]:[]},rounds:sid?{[sid]:rid}:{},c});}
+function commitAnswer(sid,val,note){noteEntry(sid,note||('My answer: '+VAL[val]),propChanges({t:'side',side:mySide(sid),val},sid,curRound(sid).id));}
+function commitDate(sid,when,place,by){noteEntry(sid,'Date '+nextDateN(sid,curRound(sid).id)+' set.',propChanges({t:'date.set',when,place,by},sid,curRound(sid).id));}
+function commitMove(did,when,by){const d=dateInfo(did);noteEntry(d.sid,'Date '+d.n+' moved.',[{t:'date.move',did,when,by}]);}
+function commitCancel(did,by){const d=dateInfo(did);noteEntry(d.sid,'Date '+d.n+' cancelled.',[{t:'date.cancel',did,by}]);}
+function markHappened(did){
+  const d=dateInfo(did), sid=d.sid, gb=goBetween(sid)[0], c=[{t:'date.happened',did}];
+  if(gb){
+    c.push({t:'item.open',item:{id:nid('o'),kind:'owe',pid:gb,purpose:'feedback',what:'your feedback on Date '+d.n,sid,did}});
+    c.push({t:'item.open',item:{id:nid('o'),kind:'waiting',pid:gb,purpose:'feedback',what:nm(other(sid))+"'s feedback on Date "+d.n,sid,did}});
+  }
+  noteEntry(sid,'Date '+d.n+' happened.',c);
+}
+function commitFeedback(did,val,note){const d=dateInfo(did);noteEntry(d.sid,note||('My feedback on Date '+d.n+': '+VAL[val]),propChanges({t:'date.fb',did,side:mySide(d.sid),val},d.sid,d.rid));}
+function commitNote(target,text){
+  if(target.did){const d=dateInfo(target.did);noteEntry(d.sid,text,[{t:'date.note',did:target.did}]);}
+  else if(target.sid)noteEntry(target.sid,text,[]);
+  else record({from:'me',to:[],ch:'note',text,about:{p:[target.pid],s:[]}});
+}
+function commitWaiting(pid,what,sid){record({from:'me',to:[],ch:'note',text:'Waiting on '+nm(pid)+': '+what,about:{p:[pid],s:sid?[sid]:[]},rounds:sid?{[sid]:curRound(sid).id}:{},c:[{t:'item.open',item:{id:nid('o'),kind:'waiting',pid,purpose:'manual',what,sid:sid||null}}]});}
+function commitDone(iid){const it=itemInfo(iid);record({from:'me',to:[],ch:'note',text:'Marked done: '+itemLine(it),about:{p:[it.pid],s:it.sid?[it.sid]:[]},rounds:it.sid?{[it.sid]:curRound(it.sid).id}:{},c:[{t:'item.close',iid}]});}
+function commitCallDue(pid,due){
+  const c=openItems(i=>i.pid===pid&&i.purpose==='call').map(i=>({t:'item.close',iid:i.id}));
+  if(due)c.push({t:'item.open',item:{id:nid('o'),kind:'owe',pid,purpose:'call',what:'a call',due}});
+  record({from:'me',to:[],ch:'note',text:due?'Call due: '+fDay(due):'Call due cleared',about:{p:[pid],s:[]},c});
+}
+
+/* ---------------- seed (all made up) ---------------- */
+const MY_TEXT='*About me*\nAge 36, lives in Tzfat. Works in IT, learns every evening.\nCalm, warm, likes hiking and hosting.\n*Looking for*\nA kind, growing girl who wants a warm Torah home.';
+const LEAH_TEXT='*Leah*\nAge: 34\nFrom Jerusalem. Works as a speech therapist.\nWarm and steady; loves hosting and long walks.\nLooking for: a kind, growing ben Torah, 33 to 40.\n\nFor details: her mother Rachel, 050-000-3311\nReference: Rabbi Yosef, 02-000-4455';
+function blank(){return {v:1,clock:T(2026,8,3,10,0),seq:100,ord:0,people:{},links:{},shid:{},rounds:{},dates:{},items:{},vers:{},entries:[],story:{i:0,happened:{},done:{}},ui:{intro:true,fold:{}}};}
+function seed(){
+  S=blank(); dirty();
+  const add=p=>{S.people[p.id]=Object.assign({roles:[],phones:[],email:'',city:'',gender:'',age:null},p);};
+  add({id:'me',name:'Me',roles:['me','single'],gender:'m',age:{value:36,asOf:T(2026,1,1)},city:'Tzfat',phones:[{label:'Mobile',n:'050-000-9000'}]});
+  add({id:'miriam',name:'Miriam',roles:['shadchan'],gender:'f',city:'Jerusalem',phones:[{label:'Mobile',n:'050-000-1101'}],email:'miriam@example.com'});
+  add({id:'rivka',name:'Rivka',roles:['shadchan'],gender:'f',city:'Bnei Brak',phones:[{label:'Mobile',n:'052-000-1202'}],email:'rivka@example.com'});
+  add({id:'chana',name:'Chana',roles:['shadchan'],gender:'f',city:'Beit Shemesh',phones:[{label:'Mobile',n:'054-000-1303'}]});
+  add({id:'moshe',name:'Moshe',roles:['friend'],gender:'m',city:'Tzfat',phones:[{label:'Mobile',n:'050-000-2201'}]});
+  add({id:'avi',name:'Avi',roles:['friend','reference'],gender:'m',city:'Haifa',phones:[{label:'Mobile',n:'053-000-2302'}]});
+  add({id:'shira',name:'Shira',roles:['single'],gender:'f',age:{value:31,asOf:T(2026,6,20)},city:'Haifa'});
+  add({id:'tova',name:'Tova',roles:['single'],gender:'f',age:{value:31,asOf:T(2026,7,30)},city:'Bnei Brak'});
+  S.vers.vme2={id:'vme2',pid:'me',lang:'Hebrew',label:'v2 · Hebrew',text:MY_TEXT,files:[{kind:'photo',name:'Photo 1'}],at:T(2026,6,1)};
+  S.vers.vme3={id:'vme3',pid:'me',lang:'English',label:'v3 · English',text:MY_TEXT,files:[{kind:'pdf',name:'Profile_v3.pdf'},{kind:'photo',name:'Photo 2'}],at:T(2026,7,20)};
+  const at=t=>{S.clock=t;};
+  at(T(2026,6,14,10,0)); record({from:'me',to:['miriam'],ch:'whatsapp',text:'Here is my profile. Thank you!',ver:'vme2',files:S.vers.vme2.files,about:{p:['miriam'],s:[]},c:[{t:'ver.sent',vid:'vme2',to:'miriam'}]});
+  at(T(2026,6,20,18,5));
+  record({from:'chana',to:['me'],ch:'whatsapp',text:'An idea for you: Shira, 31, from Haifa. She teaches high school and is very refined. Interested?',about:{p:['chana','shira'],s:['s_shira']},rounds:{s_shira:'r_shira1'},c:[
+    {t:'ver.new',ver:{id:'v_sh1',pid:'shira',lang:'English',label:'',text:'Shira, 31, Haifa. Teaches high school.',files:[],at:T(2026,6,20,18,5),from:'chana'}},
+    {t:'shid.new',shid:{id:'s_shira',guy:'me',girl:'shira',go:{guy:[],girl:['chana']}}},{t:'round.open',round:{id:'r_shira1',sid:'s_shira',n:1}},{t:'suggest',sid:'s_shira',rid:'r_shira1',by:'chana'},
+    {t:'item.open',item:{id:'o_sh1',kind:'owe',pid:'chana',purpose:'answer',what:'your answer about Shira',sid:'s_shira'}}]});
+  at(T(2026,6,22,9,10)); record({from:'me',to:['chana'],ch:'whatsapp',text:'Yes, I would like to go ahead.',about:{p:['chana','shira'],s:['s_shira']},rounds:{s_shira:'r_shira1'},c:[{t:'side',sid:'s_shira',rid:'r_shira1',side:'guy',val:'yes'},{t:'item.close',iid:'o_sh1'},{t:'item.open',item:{id:'o_sh2',kind:'waiting',pid:'chana',purpose:'answer',what:"Shira's answer",sid:'s_shira'}}]});
+  at(T(2026,7,2,13,20)); record({from:'chana',to:['me'],ch:'whatsapp',text:"Her side says not now. She isn't ready yet.",about:{p:['chana','shira'],s:['s_shira']},rounds:{s_shira:'r_shira1'},c:[{t:'side',sid:'s_shira',rid:'r_shira1',side:'girl',val:'notnow'},{t:'item.close',iid:'o_sh2'},{t:'round.end',sid:'s_shira',rid:'r_shira1',by:'girl',why:'not ready'}]});
+  at(T(2026,7,21,11,0)); record({from:'me',to:['rivka'],ch:'whatsapp',text:'Here is my updated profile.',ver:'vme3',files:S.vers.vme3.files,about:{p:['rivka'],s:[]},c:[{t:'ver.sent',vid:'vme3',to:'rivka'}]});
+  at(T(2026,7,22,11,30)); record({from:'me',to:['chana'],ch:'whatsapp',text:'Here is my updated profile.',ver:'vme3',files:S.vers.vme3.files,about:{p:['chana'],s:[]},c:[{t:'ver.sent',vid:'vme3',to:'chana'}]});
+  at(T(2026,7,30,16,40)); record({from:'rivka',to:['me'],ch:'whatsapp',text:'I have someone for you: Tova, 31, from Bnei Brak. A teacher, very warm, good family. What do you say?',about:{p:['rivka','tova'],s:['s_tova']},rounds:{s_tova:'r_tova1'},c:[
+    {t:'ver.new',ver:{id:'v_tv1',pid:'tova',lang:'English',label:'',text:'Tova, 31, Bnei Brak. A teacher.',files:[],at:T(2026,7,30,16,40),from:'rivka'}},
+    {t:'shid.new',shid:{id:'s_tova',guy:'me',girl:'tova',go:{guy:[],girl:['rivka']}}},{t:'round.open',round:{id:'r_tova1',sid:'s_tova',n:1}},{t:'suggest',sid:'s_tova',rid:'r_tova1',by:'rivka'},
+    {t:'item.open',item:{id:'o_tv1',kind:'owe',pid:'rivka',purpose:'answer',what:'your answer about Tova',sid:'s_tova'}}]});
+  S.clock=STEPS[0].at; S.story={i:0,happened:{},done:{}}; NAV=[{s:'home'}];
+}
+
+/* ---------------- the story (made-up messages) ---------------- */
+const msg=(tag,from,text,hint,files)=>()=>arrive({tag,text,files,hint:Object.assign({from},hint)});
+function happenOpen(step){
+  if(step.call){openSheet('call',defaultCall(step.call,{dir:'in',suggest:step.words}));return;}
+  let e=tagged(step.tag); if(!e){step.happen();e=tagged(step.tag);}
+  save(); render();
+  if(!e.filed)openSheet('shared',{eid:e.id});
+}
+function fileTagged(tag,patch){const e=tagged(tag);if(e&&!e.filed){const F=defaultFiling(e.id);if(patch)patch(F);commitFiling(F);}}
+const STEPS=[
+ {id:'s1',kind:'event',at:T(2026,8,3,10,12),title:"Leah's profile arrives",btn:'Share it to zugbase',tag:'m_leah1',
+  text:"Miriam sends you Leah's profile on WhatsApp: the text, a PDF and a photo. You share it to zugbase, and it lands in the Intake folder.",
+  happen:msg('m_leah1','miriam',LEAH_TEXT,{kind:'idea',person:{name:'Leah',age:34,city:'Jerusalem',tag:'leah'},contacts:[{name:'Rachel',rel:'mother',phone:'050-000-3311'},{name:'Rabbi Yosef',rel:'reference',phone:'02-000-4455'}]},[{kind:'pdf',name:'Leah_profile.pdf'},{kind:'photo',name:'Photo'}]),
+  done:()=>!!tagged('m_leah1')},
+ {id:'s2',kind:'you',at:T(2026,8,3,10,13),title:'File it: an idea for you, from Miriam',
+  text:'Tap File now (or open the Intake folder). Choose "Idea for me", check that Miriam sent it, and save.',
+  go(){const e=tagged('m_leah1');if(e&&!e.filed)openFiling(e.id);else goTab('intake');},
+  auto(){fileTagged('m_leah1');},
+  done:()=>{const s=leahSid();return !!s&&roundInfo(curRound(s)).sug.some(x=>x.by==='miriam');}},
+ {id:'s3',kind:'you',at:T(2026,8,4,9,30),title:'Ask Moshe for his opinion',
+  text:'Open Me ↔ Leah and tap "Share profile". Pick Moshe and "Ask opinion", then Send.',
+  go(){openShid(leahSid());},
+  auto(){commitShare(defaultShare({subject:leah(),sid:leahSid(),to:'moshe',why:'opinion'}));},
+  done:()=>items(i=>i.pid==='moshe'&&i.purpose==='opinion').length>0},
+ {id:'s4',kind:'event',at:T(2026,8,5,20,40),title:'Moshe calls you back',btn:'Moshe calls',call:'moshe',words:"Sounds good. Ask if she'd move.",
+  text:'Moshe calls with his opinion. After the call, zugbase asks for a short status update.',
+  auto(){const M=defaultCall('moshe',{dir:'in'});M.note="Sounds good. Ask if she'd move.";commitCall(M);},
+  done:()=>items(i=>i.pid==='moshe'&&i.purpose==='opinion'&&!i.open).length>0},
+ {id:'s5',kind:'you',at:T(2026,8,9,11,0),title:'Tell Miriam: yes, interested',
+  text:'On Me ↔ Leah, Next says "Answer Miriam about Leah". Choose Yes, then "Tell Miriam", and Send.',
+  go(){openShid(leahSid());},
+  auto(){const sid=leahSid();commitCompose(defaultCompose({to:'miriam',sid,props:[{t:'side',side:'guy',val:'yes'}],text:ANS_TEXT.yes}));},
+  done:()=>{const sid=leahSid();if(!sid)return false;const g=sideInfo(sid,curRound(sid).id,'guy');return !!g&&g.val==='yes'&&!openItems(i=>i.kind==='owe'&&i.purpose==='answer'&&i.sid===sid).length;}},
+ {id:'s6',kind:'event',at:T(2026,8,10,14,5),title:'Wait for her side',btn:"Miriam's update arrives",tag:'m_upd1',
+  text:"You're waiting on Miriam for her side. Miriam writes: the mother is looking into it, and she asks for your newest profile. File it.",
+  happen:msg('m_upd1','miriam',"Update: I sent your profile to her mother, and they're looking into it. Can you send me your newest profile? The one I have is from June.",{kind:'update',shidTag:'leah',props:[{t:'side',side:'girl',val:'thinking',words:'her mother'},{t:'passed',what:'your profile',toName:'Rachel (her mother)'},{t:'ask',purpose:'thing',what:'your newest profile'}]}),
+  auto(){fileTagged('m_upd1');},
+  done:()=>{const e=tagged('m_upd1');return !!e&&e.filed;}},
+ {id:'s7',kind:'you',at:T(2026,8,10,14,20),title:'Send Miriam your newest profile',
+  text:'On Home, tap "You owe Miriam · your newest profile" and send v3. Only that item closes; you are still waiting for her side.',
+  go(){goTab('home');},
+  auto(){const it=openItems(i=>i.pid==='miriam'&&i.purpose==='thing')[0];commitShare(defaultShare({subject:'me',to:'miriam',why:'just',forItems:it?[it.id]:[]}));},
+  done:()=>{const h=whoHas('me');return !!h.miriam&&h.miriam.vid==='vme3';}},
+ {id:'s8',kind:'event',at:T(2026,8,16,10,30),title:'Her side says yes',btn:"Miriam's message arrives",tag:'m_yes',
+  text:'Miriam writes that she says yes. File it: it closes exactly one item, the wait for her side.',
+  happen:msg('m_yes','miriam','Good news: she says yes! Her mother is very happy too.',{kind:'update',shidTag:'leah',props:[{t:'side',side:'girl',val:'yes',words:'her mother'}]}),
+  auto(){fileTagged('m_yes');},
+  done:()=>{const sid=leahSid();if(!sid)return false;const h=sideInfo(sid,curRound(sid).id,'girl');return !!h&&h.val==='yes';}},
+ {id:'s9',kind:'event',at:T(2026,8,17,12,0),title:'Miriam sets Date 1',btn:"Miriam's message arrives",tag:'m_d1',
+  text:'Miriam proposes a time and place for Date 1. Filing it creates Date 1, with its own permanent ID.',
+  happen:msg('m_d1','miriam','Date 1: Wednesday Aug 19 at 19:30, in the hotel lobby. Does that work for you?',{kind:'update',shidTag:'leah',props:[{t:'date.set',when:T(2026,8,19,19,30),place:'Hotel lobby',by:'miriam'}]}),
+  auto(){fileTagged('m_d1');},
+  done:()=>!!d1()},
+ {id:'s10',kind:'event',at:T(2026,8,18,16,20),title:'Date 1 is moved',btn:"Miriam's message arrives",tag:'m_mv1',
+  text:'Her side asks to move it. The filing sheet names the exact date it moves: Date 1.',
+  happen:msg('m_mv1','miriam','She asks to move it to Thursday Aug 20 at 20:00. Same place.',{kind:'update',shidTag:'leah',props:[{t:'date.move',when:T(2026,8,20,20,0),by:'girl'}]}),
+  auto(){fileTagged('m_mv1');},
+  done:()=>{const d=d1();return !!d&&d.moves.length>0;}},
+ {id:'s11',kind:'you',at:T(2026,8,20,22,40),title:'Date 1 happens',
+  text:"It's Thursday night, after the date. Home quietly asks whether Date 1 happened. Tap it and answer Yes.",
+  go(){goTab('home');},
+  auto(){const d=d1();if(d&&d.status==='set')markHappened(d.id);},
+  done:()=>{const d=d1();return !!d&&d.status==='happened';}},
+ {id:'s12',kind:'you',at:T(2026,8,21,9,15),title:'Record your feedback, and tell Miriam',
+  text:'Open Me ↔ Leah. Next says "Tell Miriam your feedback on Date 1". Tap it, choose Continue, then "Save and tell Miriam", and Send.',
+  go(){openShid(leahSid());},
+  auto(){const d=d1();if(!d)return;if(!d.fb.guy)commitFeedback(d.id,'continue','Easy to talk to; quiet at first.');const it=openItems(i=>i.kind==='owe'&&i.purpose==='feedback'&&i.did===d.id)[0];if(it)commitCompose(defaultCompose({to:it.pid,sid:d.sid,forItems:[it.id],text:FB_TEXT.continue}));},
+  done:()=>{const d=d1();return !!d&&!!d.fb.guy&&!openItems(i=>i.kind==='owe'&&i.purpose==='feedback'&&i.did===d.id).length;}},
+ {id:'s13',kind:'event',at:T(2026,8,23,13,10),title:'Wait for her feedback',btn:"Miriam's message arrives",tag:'m_fb1',
+  text:'Miriam says she is thinking. "Unsure" keeps the wait open; nothing closes yet.',
+  happen:msg('m_fb1','miriam',"She's thinking about it. She'll let me know tomorrow.",{kind:'update',shidTag:'leah',props:[{t:'date.fb',target:'last',side:'girl',val:'unsure'}]}),
+  auto(){fileTagged('m_fb1');},
+  done:()=>{const e=tagged('m_fb1');return !!e&&e.filed;}},
+ {id:'s14',kind:'event',at:T(2026,8,24,17,30),title:'Her feedback comes back',btn:"Miriam's message arrives",tag:'m_fb2',
+  text:'She would like a second date. Filing it closes the wait for her feedback on Date 1, and adds her phone number.',
+  happen:msg('m_fb2','miriam',"She'd like a second date! Here's her number: 050-000-4417. You can set it up directly with her.",{kind:'update',shidTag:'leah',props:[{t:'date.fb',target:'last',side:'girl',val:'continue'},{t:'phone',number:'050-000-4417'}]}),
+  auto(){fileTagged('m_fb2');},
+  done:()=>{const d=d1();return !!d&&!!d.fb.girl&&d.fb.girl.val==='continue';}},
+ {id:'s15',kind:'you',at:T(2026,8,25,20,0),title:'Set up Date 2',
+  text:'On Me ↔ Leah, Next says "Set up Date 2". Fill in Thursday Aug 27 at 20:00 and save.',
+  go(){openShid(leahSid());},
+  auto(){commitDate(leahSid(),T(2026,8,27,20,0),'Café in town','me');},
+  done:()=>!!d2()},
+ {id:'x1',kind:'event',extra:true,at:T(2026,8,26,11,0),title:'Rivka suggests the same Leah',btn:"Rivka's message arrives",tag:'m_rv',
+  text:'Another shadchan suggests Leah. File it as an idea: zugbase sees she is already here, and it joins the current round.',
+  happen:msg('m_rv','rivka','I have an idea for you! Leah, 35, from Jerusalem. A speech therapist, very warm. Interested?',{kind:'idea',person:{name:'Leah',age:35,city:'Jerusalem'},contacts:[]}),
+  auto(){fileTagged('m_rv');},
+  done:()=>{const s=leahSid();return !!s&&roundsOf(s).some(r=>roundInfo(r).sug.some(x=>x.by==='rivka'));}},
+ {id:'x2',kind:'you',extra:true,at:T(2026,8,27,23,0),title:'Date 2 happens',
+  text:'Home asks whether Date 2 happened. Answer Yes, and add your feedback if you like.',
+  go(){goTab('home');},
+  auto(){const d=d2();if(d&&d.status==='set')markHappened(d.id);},
+  done:()=>{const d=d2();return !!d&&d.status==='happened';}},
+ {id:'x3',kind:'event',extra:true,at:T(2026,9,8,15,0),title:'A pause',btn:"Miriam's message arrives",tag:'m_pause',
+  text:'She asks for a break. A pause is not an ending: open items close, and one quiet check-in waits for the date.',
+  happen:msg('m_pause','miriam',"She asks for a short break until after Yom Kippur. A family matter. She'll be in touch.",{kind:'update',shidTag:'leah',props:[{t:'pause',until:T(2026,9,22,12,0),by:'girl'}]}),
+  auto(){fileTagged('m_pause');},
+  done:()=>{const e=tagged('m_pause');return !!e&&e.filed;}},
+ {id:'x4',kind:'event',extra:true,at:T(2026,9,23,12,30),title:'Round 1 ends',btn:"Miriam's message arrives",tag:'m_end',
+  text:'She decides not to continue. Filing it ends Round 1, with who ended it and why.',
+  happen:msg('m_end','miriam',"I'm sorry. She decided not to continue; she feels the gap in hashkafa is too big.",{kind:'update',shidTag:'leah',props:[{t:'end',by:'girl',why:'hashkafa'}]}),
+  auto(){fileTagged('m_end');},
+  done:()=>{const s=leahSid();return !!s&&!!roundInfo(roundsOf(s)[0]).ended;}},
+ {id:'x5',kind:'event',extra:true,at:T(2027,9,6,10,0),title:'A year later: Round 2',btn:"Chana's message arrives",tag:'m_r2',
+  text:'Chana suggests Leah again. File it as an idea: the same record opens Round 2, and Round 1 stays visible below it.',
+  happen:msg('m_r2','chana','Hi! I have an idea for you: Leah, 35, from Jerusalem, a speech therapist. I think it could work.',{kind:'idea',person:{name:'Leah',age:35,city:'Jerusalem'},contacts:[]}),
+  auto(){fileTagged('m_r2');},
+  done:()=>{const s=leahSid();return !!s&&roundsOf(s).length>=2;}}
+];
+const MAIN=STEPS.filter(s=>!s.extra).length;
+const ANS_TEXT={yes:"Yes, I'm interested. Would she consider living in Tzfat?",no:"Thank you so much, but I don't think it's for me.",thinking:"Thanks! I'm still thinking it over. I'll get back to you soon.",notnow:"Thank you. It's not the right time for me now."};
+const FB_TEXT={continue:"It went well. I'd like to continue.",unsure:"It was nice. I need a little time to think.",stop:"Thank you so much for everything. I don't think it's for me."};
+
+function storyTick(){
+  let moved=false;
+  while(S.story.i<STEPS.length&&STEPS[S.story.i].done()){S.story.done[STEPS[S.story.i].id]=true;S.story.i++;moved=true;const n=STEPS[S.story.i];if(n&&n.at>S.clock)S.clock=n.at;dirty();}
+  if(S.story.i===0&&S.clock<STEPS[0].at)S.clock=STEPS[0].at;
+  return moved;
+}
+
+/* ---------------- navigation ---------------- */
+const top=()=>NAV[NAV.length-1];
+function push(v){NAV.push(v);render();window.scrollTo(0,0);}
+function goTab(t){NAV=[{s:t}];closeSheet(true);render();window.scrollTo(0,0);}
+function openShid(sid,tab){if(!sid)return;closeSheet(true);push({s:'shid',id:sid,tab:tab||'overview'});}
+function openFiling(eid){openSheet('file',defaultFiling(eid));}
+
+/* ---------------- undo ---------------- */
+function act(fn,msgText){const snap=JSON.stringify(S);const ok=fn();if(ok===false)return;dirty();const moved=storyTick();save();closeSheet(true);render();toast(msgText+(moved?' · Story step done ✓':''),()=>{S=JSON.parse(snap);dirty();save();render();toast('Undone');});}
+function toast(t,undo){const el=$('#toast');clearTimeout(TOAST);el.innerHTML=esc(t)+(undo?' <button type="button" id="undoBtn">Undo</button>':'');el.hidden=false;if(undo)$('#undoBtn').onclick=()=>{el.hidden=true;undo();};TOAST=setTimeout(()=>{el.hidden=true;},4200);}
+
+/* ---------------- rendering helpers ---------------- */
+const back='<button class="back" data-act="back" aria-label="Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>';
+const CH={whatsapp:'WhatsApp',call:'Call',sms:'SMS',email:'Email',inperson:'In person',note:'Note',share:'Shared to zugbase',pasted:'Pasted'};
+function filesHtml(f){return f&&f.length?'<div class="files">'+f.map(x=>'<span class="file">'+(x.kind==='pdf'?'PDF':x.kind==='photo'?'Photo':'File')+' · '+esc(x.name)+'</span>').join('')+'</div>':'';}
+function whoLine(e){
+  if(e.ch==='note')return 'Note';
+  const f=e.from?nm(e.from):'Unknown sender'; const t=e.to.length?e.to.map(nm).join(', '):'';
+  return f+(t?' → '+t:'');
+}
+function changeText(c,e){
+  switch(c.t){
+    case 'side':return sideName(c.sid,c.side)+': '+VAL[c.val]+(c.words?' ('+c.words+"'s words)":'');
+    case 'suggest':return 'Suggested by '+nm(c.by)+(c.also?' (also)':'');
+    case 'shid.new':return 'New shidduch: '+pairName(c.shid.id);
+    case 'round.open':return c.round.n>1?'Round '+c.round.n+' starts on the same record':'';
+    case 'person.new':return c.person.roles&&c.person.roles.includes('single')?'New: '+c.person.name:'Added: '+c.person.name;
+    case 'link.new':return '';
+    case 'ver.new':return '';
+    case 'ver.sent':return 'Sent: '+(S.vers[c.vid]&&S.vers[c.vid].pid==='me'?'my profile ':'')+verLabel(c.vid);
+    case 'date.set':{const d=S.dates[c.did];return 'Date '+(d?d.n:'')+' set: '+fWhen(c.when)+(c.place?' · '+c.place:'');}
+    case 'date.move':{const d=S.dates[c.did];return 'Date '+(d?d.n:'')+' moved to '+fWhen(c.when)+(c.by?' ('+(c.by==='girl'?'her side':c.by==='guy'?'my side':nm(c.by))+' asked)':'');}
+    case 'date.happened':{const d=S.dates[c.did];return 'Date '+(d?d.n:'')+' happened';}
+    case 'date.cancel':{const d=S.dates[c.did];return 'Date '+(d?d.n:'')+' cancelled';}
+    case 'date.fb':{const d=S.dates[c.did];return d?fbName(d.sid,c.side)+' on Date '+d.n+': '+VAL[c.val]:'';}
+    case 'date.note':{const d=S.dates[c.did];return d?'Note on Date '+d.n:'';}
+    case 'pause':return 'Paused until '+fShort(c.until);
+    case 'round.end':{const r=S.rounds[c.rid];return 'Round '+(r?r.n:'')+' ended '+byText(c.sid,c.by)+(c.why?' · '+c.why:'');}
+    case 'fact':return 'Added '+nm(c.pid)+"'s "+c.field+': '+c.value;
+    case 'passed':return 'Passed on: '+c.what+' → '+c.toName;
+    default:return '';
+  }
+}
+function resultHtml(e){
+  const main=[],q=[];
+  for(const c of e.c){
+    if(c.t==='item.open'){const it=S.items[c.item.id];q.push('Opens: '+itemLine(it));continue;}
+    if(c.t==='item.close'){const it=S.items[c.iid];if(it)q.push('Closes: '+itemLine(it));continue;}
+    const t=changeText(c,e);if(t)main.push(t);
+  }
+  if(!main.length&&!q.length)return '';
+  return '<div class="res">'+main.map(esc).join('<br>')+(q.length?(main.length?'<br>':'')+'<span class="q">'+q.map(esc).join('<br>')+'</span>':'')+'</div>';
+}
+function entHtml(e,clamp){
+  const out=e.from==='me'&&e.ch!=='note';
+  const when=e.prec==='received'?'Received '+fWhen(e.at):e.prec==='pasted'?'Pasted '+fWhen(e.at):fWhen(e.at);
+  return '<button class="ent'+(out?' out':'')+(e.ch==='note'?' sys':'')+'" data-act="entry" data-arg="'+e.id+'"><div class="meta"><span>'+esc(when)+'</span><span>'+esc(CH[e.ch]||e.ch)+(e.ch==='call'&&e.answered===false?' · not answered':'')+'</span></div><div class="who">'+esc(whoLine(e))+'</div>'+(e.text?'<div class="words'+(clamp?' clamp':'')+'">'+rich(e.text)+'</div>':'')+(clamp?'':filesHtml(e.files))+resultHtml(e)+'</button>';
+}
+function itemRow(it){
+  const w=it.kind==='waiting';
+  const l1=it.purpose==='call'?'<span class="tag o">Call due</span>'+esc(nm(it.pid)):'<span class="tag '+(w?'w':'o')+'">'+(w?'Waiting':'You owe')+'</span>'+esc(nm(it.pid));
+  const l2=it.purpose==='call'?'':esc(cap(it.what))+(it.sid&&!it.what.includes(nm(other(it.sid)))?' · '+esc(nm(other(it.sid))):'');
+  const end=it.due?(it.due<=S.clock?'due':fShort(it.due)):waited(it.openedBy.at);
+  return '<button class="row'+(w?' wait':'')+'" data-act="item" data-arg="'+it.id+'"><div class="main"><div class="l1">'+l1+'</div>'+(l2?'<div class="l2">'+l2+'</div>':'')+'</div><div class="end">'+esc(end)+'</div></button>';
+}
+function dateDueRows(){
+  const rows=[];
+  for(const s of shids()){if(!shidActive(s.id))continue;for(const d of datesOf(s.id,curRound(s.id).id))if(d.status==='set'&&d.when<=S.clock)rows.push('<button class="row" data-act="happened" data-arg="'+d.id+'" data-t="did-happen"><div class="main"><div class="l1"><span class="tag d">Date '+d.n+'</span>'+esc(nm(other(s.id)))+'</div><div class="l2">Did it happen? '+esc(fWhen(d.when))+'</div></div><span class="chev">›</span></button>');}
+  return rows;
+}
+function outstandingHtml(f){
+  const its=openItems(f).sort((a,b)=>(a.kind===b.kind?a.openedBy.at-b.openedBy.at:a.kind==='owe'?-1:1));
+  const rows=(f?[]:dateDueRows()).concat(its.map(itemRow));
+  return rows.length?'<div class="list">'+rows.join('')+'</div>':'<div class="list"><div class="empty">Nothing outstanding.</div></div>';
+}
+function stagePill(sid){const st=stageInfo(sid);return '<span class="pill '+(st.k==='wait'?'wait':st.k==='good'?'good':st.k==='end'?'end':'')+'">'+esc(st.t)+'</span>';}
+function shidRow(s){
+  const w=openItems(i=>i.sid===s.id&&i.kind==='waiting')[0];
+  const r=curRound(s.id);
+  return '<button class="row" data-act="openShid" data-arg="'+s.id+'"><div class="main"><div class="l1">'+esc(pairName(s.id))+(r.n>1?' <span class="sub">· Round '+r.n+'</span>':'')+'</div><div class="l2">'+esc(stageInfo(s.id).t)+(w?' · waiting on '+esc(nm(w.pid)):'')+'</div></div><span class="chev">›</span></button>';
+}
+function personRow(p){
+  const w=openItems(i=>i.pid===p.id&&i.kind==='waiting').length;
+  const role=p.roles.includes('shadchan')?'Shadchan':p.roles.includes('single')?'Single':p.roles.includes('reference')?'Reference':p.roles.includes('friend')?'Friend':'Contact';
+  return '<button class="row'+(w?' wait':'')+'" data-act="openPerson" data-arg="'+p.id+'"><div class="main"><div class="l1">'+esc(p.name)+'</div><div class="l2">'+esc(role)+(p.city?' · '+esc(p.city):'')+(w?' · waiting on '+(p.gender==='m'?'him':'her'):'')+'</div></div><span class="chev">›</span></button>';
+}
+
+/* ---------------- screens ---------------- */
+function homeScreen(){
+  const unf=S.entries.filter(e=>!e.filed&&!e.deleted);
+  const nv=newestMine(), has=whoHas('me'), names=Object.keys(has);
+  const older=names.filter(n=>has[n].vid!==nv.id);
+  let h='<div class="top"><div class="title">zugbase</div><div class="bh">ב״ה<br>Prototype · made-up data</div></div>';
+  if(S.ui.intro)h+='<div class="card intro"><p>This is a clickable prototype. Everyone in it is made up, and nothing is ever sent. The dark bar at the top walks you through Leah\'s shidduch, one step at a time.</p><div class="btns"><button class="btn pri" data-act="story" data-t="start">Start the story</button><button class="btn quiet" data-act="introHide">Hide this</button></div></div>';
+  h+='<button class="card link" data-act="openPerson" data-arg="me"><div class="main"><b>My profile</b> · newest '+esc(nv.label)+'<div class="sub">Sent to '+names.length+' shadchanim'+(older.length?' · '+older.map(nm).join(', ')+' '+(older.length>1?'have':'has')+' an older version':' · all have the newest')+'</div></div><span class="chev">›</span></button>';
+  if(unf.length)h+='<button class="card link" data-act="goTab" data-arg="intake" style="background:var(--wait);border-color:var(--wait-line)"><div class="main"><b>'+unf.length+' new in the Intake folder</b><div class="sub" style="color:var(--wait-ink)">File '+(unf.length>1?'them':'it')+' when you have a minute</div></div><span class="chev">›</span></button>';
+  h+='<h2>Outstanding</h2>'+outstandingHtml();
+  const up=[];for(const s of shids())if(shidActive(s.id))for(const d of datesOf(s.id,curRound(s.id).id))if(d.status==='set'&&d.when>S.clock)up.push({s,d});
+  if(up.length)h+='<h2>Coming up</h2><div class="list">'+up.map(x=>'<button class="row" data-act="openDate" data-arg="'+x.d.id+'"><div class="main"><div class="l1">Date '+x.d.n+' · '+esc(nm(other(x.s.id)))+'</div><div class="l2">'+esc(fWhen(x.d.when))+(x.d.place?' · '+esc(x.d.place):'')+'</div></div><span class="chev">›</span></button>').join('')+'</div>';
+  const act=shids().filter(s=>shidActive(s.id)).sort((a,b)=>lastAt(b.id)-lastAt(a.id));
+  h+='<h2>My shidduchim</h2>'+(act.length?'<div class="list">'+act.map(shidRow).join('')+'</div>':'<div class="list"><div class="empty">None active.</div></div>');
+  return h;
+}
+function shidListScreen(){
+  const all=shids().sort((a,b)=>(shidActive(b.id)-shidActive(a.id))||(lastAt(b.id)-lastAt(a.id)));
+  const act=all.filter(s=>shidActive(s.id)), done=all.filter(s=>!shidActive(s.id));
+  return '<div class="top"><div class="title">Shidduchim</div></div><div class="sub">Made from the shidduch records, one per pair. In shadchan mode it sits next to Guys and Girls.</div>'+
+    '<h2>Active</h2>'+(act.length?'<div class="list">'+act.map(shidRow).join('')+'</div>':'<div class="list"><div class="empty">None.</div></div>')+
+    (done.length?'<h2>Ended</h2><div class="list">'+done.map(shidRow).join('')+'</div>':'');
+}
+function peopleScreen(){
+  const ps=people().filter(p=>p.id!=='me');
+  const g=(t,f)=>{const l=ps.filter(f);return l.length?'<h2>'+t+'</h2><div class="list">'+l.map(personRow).join('')+'</div>':'';};
+  return '<div class="top"><div class="title">People</div></div>'+g('Shadchanim',p=>p.roles.includes('shadchan'))+g('Singles',p=>p.roles.includes('single'))+g('Friends, references and contacts',p=>!p.roles.includes('shadchan')&&!p.roles.includes('single'));
+}
+function intakeScreen(){
+  const unf=S.entries.filter(e=>!e.filed&&!e.deleted).sort((a,b)=>b.at-a.at);
+  const filed=S.entries.filter(e=>e.filed&&!e.deleted&&(e.prec==='received'||e.prec==='pasted')).sort((a,b)=>b.rec-a.rec).slice(0,4);
+  let h='<div class="top"><div class="title">Intake folder</div><button class="btn" data-act="paste">Paste or type</button></div><div class="sub">Shared and pasted things wait here, exactly as they came, until you file them.</div><h2>To file</h2>';
+  h+=unf.length?'<div class="list">'+unf.map(e=>'<button class="row" data-act="file" data-arg="'+e.id+'" data-t="file-row"><div class="main"><div class="l1">'+esc((e.text||'').replace(/\*/g,'').split('\n')[0].slice(0,60))+'</div><div class="l2">'+(e.prec==='received'?'Shared from WhatsApp · received ':'Pasted ')+esc(fWhen(e.at))+'</div></div><span class="btn sm pri">File</span></button>').join('')+'</div>':'<div class="list"><div class="empty">Nothing waiting. The story bar will share messages in here.</div></div>';
+  if(filed.length)h+='<h2>Filed recently</h2>'+filed.map(e=>entHtml(e,true)).join('');
+  return h;
+}
+function shidScreen(v){
+  const sid=v.id, sh=S.shid[sid]; if(!alive(sh))return '<div class="empty">This shidduch is gone (undone).</div>';
+  const r=curRound(sid), ri=roundInfo(r), tab=v.tab||'overview';
+  let h='<div class="top">'+back+'<div class="title">'+esc(pairName(sid))+'</div><div class="bh">ב״ה</div></div>';
+  h+='<div class="pills">'+stagePill(sid)+(r.n>1?'<span class="pill">Round '+r.n+'</span>':'')+'</div>';
+  h+='<div class="seg" role="tablist">'+[['overview','Overview'],['dates','Dates'],['history','History'],['people','People']].map(([k,l])=>'<button role="tab" data-act="shidTab" data-arg="'+k+'" aria-current="'+(tab===k)+'">'+l+'</button>').join('')+'</div>';
+  if(tab==='overview')h+=shidOverview(sid,r,ri);
+  else if(tab==='dates')h+=shidDates(sid);
+  else if(tab==='history')h+=shidHistory(sid);
+  else h+=shidPeople(sid);
+  return h;
+}
+function statusHtml(sid,rid,side){
+  const s=sideInfo(sid,rid,side), mine=isMine(sid)&&side===mySide(sid);
+  if(!s){if(mine){const ow=openItems(i=>i.sid===sid&&i.kind==='owe'&&i.purpose==='answer')[0];return 'Not answered yet'+(ow?'<small>'+esc(nm(ow.pid))+' is waiting for your answer</small>':'');}return 'Not asked yet';}
+  const label=VAL[s.val]+(s.dn?' (Date '+s.dn+')':'');
+  let src;
+  if(s.e.from&&s.e.from!=='me')src='via '+nm(s.e.from)+', '+fShort(s.e.at)+(s.words?' · '+s.words+"'s words":'');
+  else if(s.e.ch!=='note'&&s.e.to.length)src='told '+nm(s.e.to[0])+', '+fShort(s.e.at);
+  else{const told=live().find(e=>e.at>=s.e.at&&e.from==='me'&&e.ch!=='note'&&e.about.s.includes(sid)&&e.c.some(c=>c.t==='item.close'&&S.items[c.iid]&&S.items[c.iid].kind==='owe'));src=fShort(s.e.at)+(told?' · told '+nm(told.to[0])+', '+fShort(told.at):' · not told yet');}
+  return esc(label)+'<small>'+esc(src)+'</small>';
+}
+function shidOverview(sid,r,ri){
+  const meK=isMine(sid)?'My status':'His status', thK=isMine(sid)?'Her status':'Her status';
+  const waits=openItems(i=>i.sid===sid&&i.kind==='waiting'), owes=openItems(i=>i.sid===sid&&i.kind==='owe');
+  const nx=nextInfo(sid), ds=datesOf(sid,r.id);
+  let h='<div class="list">';
+  h+='<div class="kvr"><div class="k">'+meK+'</div><div class="v">'+statusHtml(sid,r.id,mySide(sid))+'</div></div>';
+  h+='<div class="kvr"><div class="k">'+thK+'</div><div class="v">'+statusHtml(sid,r.id,theirSide(sid))+'</div></div>';
+  h+='<div class="kvr'+(waits.length?' wait':'')+'"><div class="k">Waiting on</div><div class="v">'+(waits.length?waits.map(i=>esc(nm(i.pid))+' · '+esc(i.what)+'<small>'+esc(waited(i.openedBy.at))+'</small>').join(''):'<span class="sub">No one</span>')+'</div></div>';
+  if(owes.length>1)h+='<div class="kvr"><div class="k">You owe</div><div class="v">'+owes.map(i=>esc(cap(oweVerb(i)))).join('<br>')+'</div></div>';
+  h+='<div class="kvr"><div class="k">Next</div><div class="v">'+esc(nx.t)+(nx.btn?'<br><button class="btn pri sm" data-act="'+nx.act+'" data-arg="'+nx.arg+'" data-t="next">'+esc(nx.btn)+'</button>':'')+'</div></div>';
+  h+='<div class="kvr"><div class="k">Dates</div><div class="v">'+(ds.length?ds.map(d=>'<button class="dl" data-act="openDate" data-arg="'+d.id+'"><span>'+d.n+' · '+esc(d.when?fWhen(d.when):'no time yet')+(d.place?' · '+esc(d.place):'')+'</span><span class="sub">'+esc(dStatus(d))+' ›</span></button>').join(''):'<span class="sub">None yet</span>')+'</div></div>';
+  h+='</div>';
+  const rec=entriesOfShid(sid).slice(-3).reverse();
+  h+='<h2>Recent</h2>'+(rec.length?rec.map(e=>entHtml(e,true)).join(''):'<div class="empty">Nothing yet.</div>')+'<button class="btn ghost" data-act="shidTab" data-arg="history">All history ›</button>';
+  const gb=goBetween(sid);
+  if(gb.length){const g=P(gb[0]);h+='<div class="card gb"><div class="sub">Through</div><div><b>'+gb.map(p=>esc(nm(p))+(linkTo(p,other(sid))?' ('+esc(linkTo(p,other(sid)))+')':'')).join(' → ')+'</b></div>'+contactRow(g.id,false)+'</div>';}
+  if(!ri.ended)h+='<div class="btns" style="margin-top:12px"><button class="btn" data-act="answer" data-arg="'+sid+'">Answer</button><button class="btn" data-act="setDate" data-arg="'+sid+'">Add date</button><button class="btn" data-act="shareProfile" data-arg="'+sid+'" data-t="share-profile">Share profile</button><button class="btn" data-act="more" data-arg="'+sid+'">Pause or end</button></div>';
+  return h;
+}
+function dStatus(d){return {set:d.when>S.clock?'set':'did it happen?',happened:'happened',cancelled:'cancelled',new:'new'}[d.status]+(d.moves.length?' · moved'+(d.moves.length>1?' '+d.moves.length+'×':''):'');}
+function linkTo(a,b){const l=Object.values(S.links).find(x=>alive(x)&&x.a===a&&x.b===b);return l?(l.kind==='mother'?'her mother':l.kind==='father'?'her father':l.kind):'';}
+function shidDates(sid){
+  const rs=roundsOf(sid).slice().reverse(); let h='';
+  for(const r of rs){const ds=datesOf(sid,r.id);h+=(rs.length>1?'<h2>Round '+r.n+'</h2>':'')+'<div class="list">'+(ds.length?ds.map(d=>'<button class="row" data-act="openDate" data-arg="'+d.id+'"><div class="main"><div class="l1">Date '+d.n+'</div><div class="l2">'+esc(d.when?fWhen(d.when):'no time yet')+(d.place?' · '+esc(d.place):'')+' · '+esc(dStatus(d))+'</div></div><span class="chev">›</span></button>').join(''):'<div class="empty">No dates in this round.</div>')+'</div>';}
+  if(shidActive(sid))h+='<div class="btns" style="margin-top:10px"><button class="btn" data-act="setDate" data-arg="'+sid+'">Add a date</button></div>';
+  return h;
+}
+function shidHistory(sid){
+  const rs=roundsOf(sid).slice().reverse(); const es=entriesOfShid(sid); let h='';
+  rs.forEach((r,ix)=>{
+    const ri=roundInfo(r); const mine=es.filter(e=>e.rounds[sid]===r.id).reverse(); const nD=datesOf(sid,r.id).filter(d=>d.status==='happened').length;
+    const folded=S.ui.fold[r.id];
+    const st=ri.ended?'ended '+byText(sid,ri.ended.by)+(ri.ended.why?' ('+ri.ended.why+')':''):ix===0?'active':'';
+    h+='<button class="rh" data-act="fold" data-arg="'+r.id+'"><b>Round '+r.n+' · '+esc(fShort(ri.start))+'</b><span>'+nD+' date'+(nD===1?'':'s')+(st?' · '+esc(st):'')+' · '+(folded?'show':'fold')+'</span></button>';
+    if(!folded)h+=mine.map(e=>entHtml(e,false)).join('')||'<div class="empty">Nothing yet.</div>';
+  });
+  return h;
+}
+function shidPeople(sid){
+  const sh=S.shid[sid]; const rows=[];
+  for(const r of roundsOf(sid))for(const s of roundInfo(r).sug)rows.push(['Suggested by',s.by,fShort(s.at)+(roundsOf(sid).length>1?' · Round '+r.n:'')+(s.also?' · also':'')]);
+  rows.push([isMine(sid)?'Her side':'Her side',other(sid),'the single']);
+  for(const g of goBetween(sid))rows.push(['Through',g,linkTo(g,other(sid))||'go-between']);
+  for(const it of items(i=>i.sid===sid&&i.purpose==='opinion'))rows.push(['Asked for an opinion',it.pid,'asked '+fShort(it.openedBy.at)+(it.closedBy?' · replied '+fShort(it.closedBy.at):' · no reply yet')]);
+  for(const l of Object.values(S.links).filter(x=>alive(x)&&x.b===other(sid)&&x.kind==='reference'))rows.push(['Reference',l.a,'']);
+  return '<div class="list">'+rows.map(([k,p,s])=>'<button class="row" data-act="openPerson" data-arg="'+p+'"><div class="main"><div class="l2">'+esc(k)+'</div><div class="l1">'+esc(nm(p))+'</div>'+(s?'<div class="l2">'+esc(s)+'</div>':'')+'</div><span class="chev">›</span></button>').join('')+'</div>';
+}
+function contactRow(pid,withWaiting){
+  const w=openItems(i=>i.pid===pid&&i.kind==='waiting').length;
+  return '<div class="contact'+(withWaiting?'':' four')+'"><button class="btn" data-act="call" data-arg="'+pid+'">Call</button><button class="btn" data-act="msg" data-arg="'+pid+'|email">Email</button><button class="btn" data-act="msg" data-arg="'+pid+'|whatsapp">WhatsApp</button><button class="btn" data-act="msg" data-arg="'+pid+'|sms">SMS</button>'+(withWaiting?'<button class="btn'+(w?' on':'')+'" data-act="waiting" data-arg="'+pid+'">Waiting'+(w>1?' '+w:'')+'</button>':'')+'</div>';
+}
+function personScreen(v){
+  const p=P(v.id); if(!alive(p))return '<div class="empty">This person is gone (undone).</div>';
+  const single=p.roles.includes('single')&&p.id!=='me';
+  let h='<div class="top">'+back+'<div class="title">'+esc(p.name==='Me'?'My profile':p.name)+'</div>'+(single&&p.gender==='f'?'<button class="btn sm" data-act="photo" data-arg="'+p.id+'">Photo</button>':'')+'<div class="bh">ב״ה<br><button class="btn sm" data-act="edit" data-arg="'+p.id+'">Edit</button></div></div>';
+  const age=p.age?p.age.value+Math.floor((S.clock-p.age.asOf)/(365.25*864e5)):null;
+  h+='<div class="pills">'+(age?'<span class="pill">Age '+age+'</span>':'')+(p.city?'<span class="pill">'+esc(p.city)+'</span>':'')+p.roles.filter(r=>r!=='me').map(r=>'<span class="pill">'+esc(cap(r))+'</span>').join('')+'</div>';
+  const ss=shids().filter(s=>s.girl===p.id||s.guy===p.id);
+  if(single)for(const s of ss)h+='<button class="card link" data-act="openShid" data-arg="'+s.id+'"><div class="main">'+(isMine(s.id)?'Shidduch with me':'Shidduch with '+esc(nm(s.guy===p.id?s.girl:s.guy)))+': <b>'+esc(stageInfo(s.id).t)+'</b></div><span class="chev">›</span></button>';
+  if(p.id!=='me'&&!single){
+    const w=openItems(i=>i.pid===p.id&&i.kind==='waiting').length, o=openItems(i=>i.pid===p.id&&i.kind==='owe').length;
+    const inS=shids().filter(s=>goBetween(s.id).includes(p.id)||roundsOf(s.id).some(r=>roundInfo(r).sug.some(x=>x.by===p.id)));
+    h+='<div class="card link"><div class="main">Waiting on '+(p.gender==='m'?'him':'her')+': <b>'+w+'</b> · You owe '+(p.gender==='m'?'him':'her')+': <b>'+o+'</b>'+(inS.length?' · Shidduchim: <b>'+inS.length+'</b>':'')+'</div></div>';
+  }
+  if(p.id!=='me'){
+    const ph=p.phones[0];
+    if(ph)h+='<div class="sub" style="margin-top:8px">'+esc(ph.label)+' · '+esc(ph.n)+'</div>';
+    h+=contactRow(p.id,true);
+    const cd=openItems(i=>i.pid===p.id&&i.purpose==='call')[0];
+    h+='<div class="btns" style="margin-top:8px;align-items:center"><span class="sub">Call due:</span><button class="chip" aria-pressed="'+(!!cd&&sod(cd.due)===sod(S.clock))+'" data-act="callDue" data-arg="'+p.id+'|0">Today</button><button class="chip" aria-pressed="'+(!!cd&&sod(cd.due)===sod(S.clock)+864e5)+'" data-act="callDue" data-arg="'+p.id+'|1">Tomorrow</button>'+(cd?'<button class="chip" data-act="callDue" data-arg="'+p.id+'|x">Clear</button>':'')+'</div>';
+  }
+  const vs=versionsOf(p.id);
+  if(p.id==='me'){
+    const has=whoHas('me');
+    h+='<h2>My profile versions</h2>'+vs.slice().reverse().map(v=>{const who=Object.keys(has).filter(k=>has[k].vid===v.id);return '<div class="card" style="padding:10px 12px;margin-top:6px"><b>'+esc(v.label)+'</b> <span class="sub">· '+esc(fShort(v.at))+'</span>'+filesHtml(v.files)+'<div class="sub" style="margin-top:4px">'+(who.length?'Has it: '+who.map(k=>esc(nm(k))+' ('+esc(fShort(has[k].at))+')').join(', '):'Nobody has this version now')+'</div></div>';}).join('');
+    h+='<div class="btns" style="margin-top:10px"><button class="btn" data-act="shareMe">Send my profile</button></div>';
+  }else if(vs.length){
+    const v=vs[vs.length-1];
+    h+='<h2>Profile · '+esc(verLabel(v.id))+(vs.length>1?' · '+vs.length+' versions':'')+'</h2><div class="card" style="padding:12px 14px"><div class="words" style="white-space:pre-wrap">'+rich(v.text)+'</div>'+filesHtml(v.files)+'</div>';
+    if(vs.length>1)h+='<div class="sub" style="margin-top:6px">Other versions: '+vs.slice(0,-1).map(x=>esc(verLabel(x.id))+' ('+esc(fShort(x.at))+')').join(', ')+'</div>';
+    if(single)h+='<div class="btns" style="margin-top:10px"><button class="btn" data-act="sharePerson" data-arg="'+p.id+'">Share profile</button></div>';
+  }
+  const ls=Object.values(S.links).filter(l=>alive(l)&&(l.b===p.id||l.a===p.id));
+  if(ls.length)h+='<h2>Contacts</h2><div class="list">'+ls.map(l=>{const o=l.b===p.id?l.a:l.b;return '<button class="row" data-act="openPerson" data-arg="'+o+'"><div class="main"><div class="l1">'+esc(nm(o))+'</div><div class="l2">'+esc(l.b===p.id?(l.kind==='mother'?'Her mother':cap(l.kind)):cap(l.kind)+' of '+nm(l.b))+((P(o).phones[0])?' · '+esc(P(o).phones[0].n):'')+'</div></div><span class="chev">›</span></button>';}).join('')+'</div>';
+  const es=entriesOfPerson(p.id).slice().reverse();
+  h+='<h2>History</h2>'+(es.length?es.slice(0,12).map(e=>entHtml(e,true)).join(''):'<div class="empty">Nothing yet.</div>');
+  if(p.id!=='me')h+='<div class="note">'+(p.bornIn?'Added '+esc(fWhen(E(p.bornIn).at)):'Added before this prototype')+'</div>';
+  return h;
+}
+function dateScreen(v){
+  const d=dateInfo(v.id); if(!d)return '<div class="empty">This date is gone (undone).</div>';
+  const sid=d.sid, mine=isMine(sid);
+  let h='<div class="top">'+back+'<div class="title">Date '+d.n+' · '+esc(nm(other(sid)))+'</div><div class="bh">ב״ה</div></div>';
+  h+='<div class="sub">'+esc(pairName(sid))+(roundsOf(sid).length>1?' · Round '+S.rounds[d.rid].n:'')+'</div>';
+  const fb=s=>{const f=d.fb[s];if(!f)return '<span class="sub">Not yet</span>';const hist=d.fbHist.filter(x=>x.side===s);return esc(VAL[f.val])+'<small>'+(f.e.from&&f.e.from!=='me'?'via '+esc(nm(f.e.from))+', ':'')+esc(fShort(f.e.at))+(hist.length>1?' · earlier: '+hist.slice(0,-1).map(x=>esc(VAL[x.val])).join(', '):'')+'</small>';};
+  h+='<div class="list" style="margin-top:10px">';
+  h+='<div class="kvr"><div class="k">When</div><div class="v">'+esc(d.when?fWhen(d.when):'No time yet')+(d.moves.length?'<small>Moved '+d.moves.map(m=>'from '+esc(fWhen(m.from))+(m.by?' ('+(m.by==='girl'?'her side':m.by==='guy'?'my side':esc(nm(m.by)))+' asked)':'')).join('; ')+'</small>':'')+'</div></div>';
+  h+='<div class="kvr"><div class="k">Where</div><div class="v">'+esc(d.place||'—')+'</div></div>';
+  h+='<div class="kvr"><div class="k">Set up by</div><div class="v">'+esc(d.by==='me'?'Me, directly':d.by?nm(d.by):'—')+'</div></div>';
+  h+='<div class="kvr"><div class="k">Status</div><div class="v">'+esc(cap(dStatus(d)))+'</div></div>';
+  h+='<div class="kvr"><div class="k">'+(mine?'My feedback':'His feedback')+'</div><div class="v">'+fb(mySide(sid))+'</div></div>';
+  h+='<div class="kvr"><div class="k">Her feedback</div><div class="v">'+fb(theirSide(sid))+'</div></div>';
+  h+='</div>';
+  if(shidActive(sid)){
+    h+='<div class="btns" style="margin-top:10px">';
+    if(d.status==='set'&&d.when<=S.clock)h+='<button class="btn pri" data-act="happened" data-arg="'+d.id+'">Did it happen?</button>';
+    if(d.status==='set')h+='<button class="btn" data-act="move" data-arg="'+d.id+'">Move it</button><button class="btn" data-act="cancelDate" data-arg="'+d.id+'">Cancelled</button>';
+    if(d.status==='happened')h+='<button class="btn" data-act="feedback" data-arg="'+d.id+'">My feedback</button>';
+    h+='</div>';
+  }
+  h+='<h2>Everything about Date '+d.n+'</h2>'+d.entries.slice().reverse().map(e=>entHtml(e,false)).join('');
+  return h;
+}
+function ledgerScreen(){
+  const L=x=>'<div>'+x+'</div>';
+  const its=items().sort((a,b)=>a.openedBy.at-b.openedBy.at);
+  let h='<div class="top">'+back+'<div class="title">Behind the scenes</div></div><div class="sub">The ledger underneath, for checking the model. Daily use never needs this screen.</div>';
+  h+='<h2>Open items ('+its.filter(i=>i.open).length+' open)</h2><div class="lg">'+its.map(i=>L('<b>'+i.id+'</b> '+(i.open?'OPEN':'closed')+' · '+i.kind+' · '+i.purpose+' · '+esc(nm(i.pid))+' · '+esc(i.what)+(i.sid?' · shidduch '+i.sid:'')+(i.did?' · date '+i.did:'')+'\n   opened by '+i.openedBy.id+(i.closedBy?' · closed by '+i.closedBy.id:''))).join('')+'</div>';
+  const ds=Object.keys(S.dates).map(dateInfo).filter(Boolean);
+  h+='<h2>Dates ('+ds.length+')</h2><div class="lg">'+(ds.map(d=>L('<b>'+d.id+'</b> Date '+d.n+' · shidduch '+d.sid+' · round '+d.rid+' · '+d.status+(d.when?' · '+esc(fWhen(d.when)):'')+'\n   entries pointing here: '+d.entries.map(e=>e.id).join(', '))).join('')||L('none yet'))+'</div>';
+  const rs=Object.values(S.rounds).filter(alive);
+  h+='<h2>Rounds</h2><div class="lg">'+rs.map(r=>{const ri=roundInfo(r);return L('<b>'+r.id+'</b> '+esc(pairName(r.sid))+' · round '+r.n+' · opened by '+r.bornIn+(ri.ended?' · ended by '+ri.ended.e.id:''));}).join('')+'</div>';
+  const es=S.entries.slice().sort((a,b)=>b.at-a.at||b.ord-a.ord);
+  h+='<h2>Ledger ('+es.length+' entries)</h2><div class="lg">'+es.map(e=>L('<b>'+e.id+'</b> '+esc(fWhen(e.at))+' ('+e.prec+')'+(e.deleted?' DELETED':'')+(!e.filed?' UNFILED':'')+' · '+esc(CH[e.ch]||e.ch)+' · '+esc(whoLine(e))+(e.about.s.length?' · about '+e.about.s.map(s=>s+(e.rounds[s]?'/'+e.rounds[s]:'')).join(','):'')+(e.ver?' · version '+e.ver:'')+(e.c.length?'\n   '+e.c.map(code).join('\n   '):''))).join('')+'</div>';
+  return h;
+}
+function code(c){
+  switch(c.t){
+    case 'item.open':return 'item.open '+c.item.id+' ('+c.item.kind+' '+c.item.purpose+', '+c.item.pid+(c.item.did?', '+c.item.did:'')+')';
+    case 'item.close':return 'item.close '+c.iid;
+    case 'date.new':return 'date.new '+c.date.id+' (Date '+c.date.n+')';
+    case 'date.set':case 'date.move':return c.t+' '+c.did+' → '+fWhen(c.when);
+    case 'date.happened':case 'date.note':return c.t+' '+c.did;
+    case 'date.cancel':return c.t+' '+c.did;
+    case 'date.fb':return 'date.fb '+c.did+' '+c.side+'='+c.val;
+    case 'side':return 'side '+c.sid+'/'+c.rid+' '+c.side+'='+c.val+(c.words?' (words: '+c.words+')':'');
+    case 'shid.new':return 'shid.new '+c.shid.id;
+    case 'round.open':return 'round.open '+c.round.id+' (round '+c.round.n+')';
+    case 'round.end':return 'round.end '+c.rid+' by '+c.by+(c.why?' ('+c.why+')':'');
+    case 'suggest':return 'suggest '+c.sid+'/'+c.rid+' by '+c.by;
+    case 'person.new':return 'person.new '+c.person.id+' '+c.person.name;
+    case 'link.new':return 'link.new '+c.link.a+' '+c.link.kind+' of '+c.link.b;
+    case 'ver.new':return 'ver.new '+c.ver.id;
+    case 'ver.sent':return 'ver.sent '+c.vid+' → '+c.to;
+    case 'pause':return 'pause '+c.rid+' until '+fShort(c.until);
+    default:return c.t;
+  }
+}
+
+/* ---------------- sheets ---------------- */
+function openSheet(type,model){SHEET={type,model};document.body.classList.add('noscroll');$('#toast').hidden=true;renderSheet();}
+function closeSheet(silent){SHEET=null;document.body.classList.remove('noscroll');if(!silent)renderSheet();else{const w=$('#sheetwrap');w.innerHTML='';w.hidden=true;}}
+function renderSheet(){
+  const w=$('#sheetwrap');
+  if(!SHEET){w.innerHTML='';w.hidden=true;return;}
+  const old=w.querySelector('.sheet'); const sc=old?old.scrollTop:0;
+  w.hidden=false;
+  w.innerHTML='<button class="scrim" data-act="sheetClose" aria-label="Close"></button><section class="sheet" role="dialog" aria-modal="true">'+SHEETS[SHEET.type](SHEET.model)+'</section>';
+  const s=w.querySelector('.sheet'); if(s&&old)s.scrollTop=sc;
+}
+const head=(t,cancel)=>'<div class="sh-h"><h3>'+t+'</h3><button class="btn quiet" data-act="sheetClose">'+(cancel||'Cancel')+'</button></div>';
+const yn=(path,on)=>'<span class="yn"><button class="y" data-act="set" data-arg="'+path+'=true" aria-pressed="'+(on!==false)+'">Yes</button><button class="n" data-act="set" data-arg="'+path+'=false" aria-pressed="'+(on===false)+'">No</button></span>';
+const chips=(path,cur,opts)=>'<div class="chips">'+opts.map(([v,l])=>'<button class="chip" data-act="set" data-arg="'+path+'='+v+'" aria-pressed="'+(String(cur)===String(v))+'">'+esc(l)+'</button>').join('')+'</div>';
+const chOpts=[['email','Email'],['whatsapp','WhatsApp'],['sms','SMS']];
+function closesHtml(M){
+  const m=closeMatches(M), o=closeOthers(M,m);
+  let h='';
+  if(m.length)h+='<div class="lbl">This closes</div><div class="props">'+m.map(iid=>'<div class="prop"><div class="main">'+esc(itemLine(itemInfo(iid)))+'</div>'+yn('closes.'+iid,M.closes[iid]!==false)+'</div>').join('')+'</div>';
+  if(o.length)h+='<div class="lbl">Other open items with '+esc(nm(M.who))+'</div><div class="props">'+o.map(iid=>'<div class="prop"><div class="main">'+esc(itemLine(itemInfo(iid)))+'<small>Stays open unless you say Yes</small></div>'+yn('closes.'+iid,M.closes[iid]===true)+'</div>').join('')+'</div>';
+  return h;
+}
+function propHtml(p,i,sid,base){
+  const path=base+'.'+i;
+  let main='', inline='';
+  const r=sid?curRound(sid):null;
+  switch(p.t){
+    case 'side':main=esc(sideName(sid,p.side))+': <b>'+esc(VAL[p.val])+'</b>'+(p.words?'<small>'+esc(p.words)+"'s words, passed on</small>":'');inline=chips(path+'.val',p.val,[['yes','Yes'],['no','No'],['thinking','Thinking'],['notnow','Not now']]);break;
+    case 'date.set':main='Sets Date '+nextDateN(sid,r.id)+'<small>'+esc(fWhen(whenOf(p)))+(p.place?' · '+esc(p.place):'')+(p.by?' · set up by '+esc(p.by==='me'?'me':nm(p.by)):'')+'</small>';inline='<input type="date" aria-label="Date" data-bind="'+path+'._d" value="'+dInput(whenOf(p))+'"><input type="time" aria-label="Time" data-bind="'+path+'._t" value="'+fTime(whenOf(p))+'"><input type="text" aria-label="Place" data-bind="'+path+'.place" value="'+esc(p.place||'')+'">';break;
+    case 'date.move':{const d=p.did&&dateInfo(p.did);const open=datesOf(sid,r.id).filter(x=>x.status==='set');main=d?'Moves <b>Date '+d.n+'</b> (now '+esc(fWhen(d.when))+')<small>to '+esc(fWhen(whenOf(p)))+(p.by==='girl'?' · her side asked':'')+'</small>':'Moves a date<small>Pick which one</small>';inline=(open.length>1||!d?chips(path+'.did',p.did,open.map(x=>[x.id,'Date '+x.n])):'')+'<input type="date" aria-label="New date" data-bind="'+path+'._d" value="'+dInput(whenOf(p))+'"><input type="time" aria-label="New time" data-bind="'+path+'._t" value="'+fTime(whenOf(p))+'">';break;}
+    case 'date.fb':{const d=p.did&&dateInfo(p.did);main=d?esc(fbName(sid,p.side))+' on <b>Date '+d.n+'</b>: <b>'+esc(VAL[p.val])+'</b>'+(['unsure'].includes(p.val)?'<small>The wait for her feedback stays open</small>':''):'Feedback, but no date has happened';inline=chips(path+'.val',p.val,[['continue','Continue'],['unsure','Unsure'],['stop','Stop']]);break;}
+    case 'ask':main='Asks you for: <b>'+esc(p.what)+'</b><small>You owe '+esc(nm(SHEET.model.from||SHEET.model.to))+' that</small>';break;
+    case 'passed':main='Passed on: '+esc(p.what)+' → '+esc(p.toName);break;
+    case 'phone':main='Adds '+esc(nm(other(sid)))+"'s phone: <b>"+esc(p.number)+'</b><small>Saved straight to her details</small>';break;
+    case 'pause':main='Pauses this shidduch until <b>'+esc(fShort(p.until))+'</b><small>Open items close; one quiet check-in waits for that date</small>';break;
+    case 'end':main='Ends Round '+r.n+' · '+esc(byText(sid,p.by))+(p.why?' · why: <b>'+esc(p.why)+'</b>':'')+'<small>Every open item of this shidduch closes</small>';break;
+    case 'opinion':main=esc(nm(SHEET.model.pid||SHEET.model.from))+"'s opinion<small>Answers your question about "+esc(nm(other(sid)))+'</small>';break;
+  }
+  const canEdit=inline&&p.on!==false;
+  return '<div class="prop"><div class="main">'+main+(canEdit&&!p.edit?'<button class="btn ghost sm" style="padding:2px 0" data-act="set" data-arg="'+path+'.edit=true">Change</button>':'')+(canEdit&&p.edit?'<div class="inline">'+inline+'</div>':'')+'</div>'+yn(path+'.on',p.on)+'</div>';
+}
+function addMenu(sid,base){
+  if(!sid)return '';
+  return '<details style="margin-top:8px"><summary class="btn ghost" style="list-style:none;display:inline-block">+ Something else it says</summary><div class="chips" style="margin-top:6px">'+
+    [['side:'+theirSide(sid),'Her side answers'],['date.set','Sets a date'],['date.move','Moves a date'],['date.fb','Her feedback'],['ask','Asks me for something'],['pause','A pause'],['end','It ends']].map(([k,l])=>'<button class="chip" data-act="addProp" data-arg="'+base+'|'+k+'">'+l+'</button>').join('')+'</div></details>';
+}
+const SHEETS={
+ shared(M){const e=E(M.eid);return head('Shared to zugbase','Later')+'<p style="margin:0 0 8px"><b>Saved to the Intake folder.</b> It stays exactly as it came.</p><div class="orig"><div class="meta">From a WhatsApp share · received '+esc(fWhen(e.at))+'</div><div class="words">'+rich(e.text)+'</div>'+filesHtml(e.files)+'</div><div class="actions"><button class="btn pri" data-act="file" data-arg="'+e.id+'" data-t="file-now">File now</button><button class="btn" data-act="sheetClose">Later</button></div>';},
+ file(F){
+  const e=E(F.eid); let h=head('File this','Later');
+  h+='<div class="orig"><div class="meta">'+(e.prec==='received'?'Shared from WhatsApp · received ':'Pasted ')+esc(fWhen(e.at))+'</div><div class="words">'+rich(e.text)+'</div>'+filesHtml(e.files)+'</div>';
+  const shad=people().filter(p=>p.roles.includes('shadchan')||p.roles.includes('friend'));
+  h+='<div class="lbl">Who sent it?</div>'+chips('from',F.from,shad.map(p=>[p.id,p.name]).concat([['__new','Someone else']]));
+  if(F.from==='__new')h+='<input type="text" style="margin-top:6px" placeholder="Search anyone, or type a new name" data-bind="newName" value="'+esc(F.newName)+'">';
+  h+='<div class="lbl">What is it?</div>'+chips('what',F.what,[['idea','Idea for me'],['about','About a shidduch'],['single','A single'],['shadchan','A shadchan'],['note','Just a note']]);
+  if(F.what==='idea'){
+    h+='<div class="two"><div><div class="lbl">Name</div><input type="text" aria-label="Name" data-bind="name" data-dup="1" value="'+esc(F.name)+'"></div><div><div class="lbl">Age</div><input type="text" aria-label="Age" data-bind="age" value="'+esc(F.age)+'"></div></div><div class="lbl">City</div><input type="text" aria-label="City" data-bind="city" value="'+esc(F.city)+'">';
+    if(F.dup){const s=F.dup.sid;const ended=s&&roundInfo(curRound(s)).ended;
+      h+='<div class="warnc"><b>'+esc(nm(F.dup.pid))+' is already here.</b>'+(s?'<br>'+esc(pairName(s))+' · '+esc(stageInfo(s).t)+(goBetween(s).length?' (through '+esc(nm(goBetween(s)[0]))+')':''):'')+'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px"><span>Same person?</span>'+yn('same',F.same)+'</div>'+(F.same&&s?'<div class="note" style="color:inherit">'+(ended?'Round '+curRound(s).n+' ended. Saving starts <b>Round '+(curRound(s).n+1)+'</b> on the same record.':'It joins the current round, as also suggested by '+esc(nm(F.from))+'.')+'</div>':'')+'</div>';}
+    if(F.contacts.length&&!(F.dup&&F.same)){h+='<div class="lbl">People in the text</div><div class="props">'+F.contacts.map((k,i)=>'<div class="prop"><div class="main">'+esc(k.name)+'<small>'+esc(k.rel==='mother'?'Her mother':cap(k.rel))+(k.phone?' · '+esc(k.phone):'')+'</small></div>'+yn('contacts.'+i+'.on',k.on)+'</div>').join('')+'</div>';}
+    if(F.from&&F.from!=='__new'&&!(F.dup&&F.same&&F.dup.sid&&!roundInfo(curRound(F.dup.sid)).ended))h+='<div class="note">Opens quietly: you owe '+esc(nm(F.from))+' your answer. It shows on Home.</div>';
+  }else if(F.what==='about'){
+    const act=shids().filter(s=>shidActive(s.id));
+    h+='<div class="lbl">Which shidduch?</div>'+chips('sid',F.sid,act.map(s=>[s.id,pairName(s.id)]));
+    if(F.sid){
+      h+='<div class="lbl">What does it say?</div>'+(F.props.length?'<div class="props">'+F.props.map((p,i)=>propHtml(p,i,F.sid,'props')).join('')+'</div>':'<div class="note">Nothing yet. Add what it says below, or save it as a plain message.</div>')+addMenu(F.sid,'props');
+      h+=closesHtml(fileModel(F));
+      const still=openItems(i=>i.sid===F.sid&&i.kind==='waiting'&&i.pid!==F.from&&!closeMatches(fileModel(F)).includes(i.id));
+      if(still.length)h+='<div class="note">Still open: '+still.map(i=>esc(itemLine(i))).join('; ')+'</div>';
+    }
+  }else if(F.what==='single'||F.what==='shadchan'){
+    h+='<input type="text" style="margin-top:8px" placeholder="Name" data-bind="name" value="'+esc(F.name)+'">';
+  }
+  h+='<div class="actions"><button class="btn pri" data-act="commitFile" data-t="save">Save</button></div>';
+  return h;
+ },
+ share(M){
+  const subj=M.subject, vs=versionsOf(subj).slice().reverse();
+  let h=head(subj==='me'?'Send my profile':'Send '+esc(nm(subj))+"'s profile");
+  const rec=people().filter(p=>p.id!==subj&&p.id!=='me'&&(p.roles.includes('shadchan')||p.roles.includes('friend')));
+  h+='<div class="lbl">To</div>'+chips('to',M.to,rec.map(p=>[p.id,p.name]));
+  if(subj!=='me')h+='<div class="lbl">Why</div>'+chips('why',M.why,[['suggest','Suggest'],['opinion','Ask opinion'],['just','Just send']]);
+  h+='<div class="lbl">Which version</div>'+chips('ver',M.ver,vs.map(v=>[v.id,verLabel(v.id)+' · '+fShort(v.at)]));
+  const v=S.vers[M.ver]; if(v)h+=filesHtml(v.files);
+  if(v&&v.files.some(f=>f.kind==='photo'))h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><span>Send the photo too?</span>'+yn('photo',M.photo)+'</div>';
+  h+='<div class="lbl">Channel</div>'+chips('ch',M.ch,chOpts);
+  h+='<textarea style="margin-top:10px" aria-label="Message" data-bind="text" data-edit="1">'+esc(M.text)+'</textarea>';
+  if(M.to){h+=closesHtml(shareModel(M));if(M.why==='opinion'&&subj!=='me')h+='<div class="note">Opens quietly: waiting on '+esc(nm(M.to))+' for '+his(M.to)+' opinion.</div>';}
+  h+='<div class="actions"><button class="btn pri" data-act="commitShare" data-t="send"'+(M.to?'':' disabled')+'>Send</button></div><div class="note">Prototype: nothing is sent. The real app opens WhatsApp here.</div>';
+  return h;
+ },
+ compose(M){
+  let h=head(esc(M.title||((CH[M.ch]||'Message')+' '+nm(M.to))));
+  if(M.sid)h+='<div class="sub">About '+esc(pairName(M.sid))+'</div>';
+  h+='<div class="lbl">Channel</div>'+chips('ch',M.ch,chOpts);
+  h+='<textarea style="margin-top:10px" aria-label="Message" data-bind="text">'+esc(M.text)+'</textarea>';
+  if(M.sid&&M.props.length)h+='<div class="lbl">It records</div><div class="props">'+M.props.map((p,i)=>propHtml(p,i,M.sid,'props')).join('')+'</div>';
+  h+=closesHtml(composeModel(M));
+  if(M.sid&&isMine(M.sid)&&M.props.some(p=>p.on!==false&&p.t==='side'&&p.val==='yes')&&!openItems(i=>i.kind==='waiting'&&i.purpose==='answer'&&i.sid===M.sid).length)h+='<div class="note">Opens quietly: waiting on '+esc(nm(M.to))+' for '+esc(nm(other(M.sid)))+"'s answer.</div>";
+  h+='<div class="actions"><button class="btn pri" data-act="commitCompose" data-t="send">Send</button></div><div class="note">Prototype: nothing is sent. The real app opens '+esc(CH[M.ch])+' here.</div>';
+  return h;
+ },
+ answer(M){
+  const sid=M.sid, gb=goBetween(sid)[0];
+  let h=head('Your answer · '+esc(nm(other(sid))));
+  h+=chips('val',M.val,[['yes','Yes'],['no','No'],['thinking','Thinking'],['notnow','Not now']]);
+  h+='<div class="actions">'+(gb?'<button class="btn pri" data-act="answerTell" data-t="tell"'+(M.val?'':' disabled')+'>Tell '+esc(nm(gb))+'</button>':'')+'<button class="btn" data-act="answerSave"'+(M.val?'':' disabled')+'>Save only</button></div>';
+  if(gb)h+='<div class="note">"Save only" keeps "you owe '+esc(nm(gb))+' your answer" open on Home.</div>';
+  return h;
+ },
+ call(M){
+  const p=P(M.pid);
+  let h=head(M.pdir==='in'?esc(p.name)+' called · add a status update?':'Call ended · add a status update?','Skip');
+  h+='<div class="sub">'+esc(p.name)+(p.phones[0]?' · '+esc(p.phones[0].n):'')+'</div>';
+  const ss=shids().filter(s=>shidActive(s.id));
+  h+='<div class="lbl">About</div>'+chips('sid',M.sid||'',ss.map(s=>[s.id,nm(other(s.id))]).concat([['','Nothing specific']]));
+  h+='<textarea style="margin-top:10px" placeholder="Note…" aria-label="Note" data-bind="note">'+esc(M.note)+'</textarea>';
+  if(M.suggest&&!M.note)h+='<button class="btn sm" style="margin-top:6px" data-act="useWords">Use the words from the story: “'+esc(M.suggest)+'”</button>';
+  if(M.sid){h+='<div class="lbl">Did it change anything?</div>'+(M.props.length?'<div class="props">'+M.props.map((q,i)=>propHtml(q,i,M.sid,'props')).join('')+'</div>':'')+addMenu(M.sid,'props');}
+  h+=closesHtml(callModel(M));
+  if(M.pdir!=='in')h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><span>Was the call answered? <span class="sub">(a guess)</span></span>'+yn('answered',M.answered)+'</div>';
+  h+='<div class="actions"><button class="btn pri" data-act="commitCall" data-t="save">Save status update</button><button class="btn" data-act="sheetClose">Skip</button></div>';
+  return h;
+ },
+ dateForm(M){
+  const sid=M.sid, n=nextDateN(sid,curRound(sid).id), gb=goBetween(sid)[0];
+  let h=head('Set up Date '+n+' · '+esc(nm(other(sid))));
+  h+='<div class="lbl">When</div><div class="two"><input type="date" aria-label="Date" data-bind="_d" value="'+esc(M._d)+'"><input type="time" aria-label="Time" data-bind="_t" value="'+esc(M._t)+'"></div>';
+  h+='<div class="lbl">Where</div><input type="text" aria-label="Place" data-bind="place" value="'+esc(M.place)+'">';
+  h+='<div class="lbl">Set up by</div>'+chips('by',M.by,(gb?[[gb,nm(gb)]]:[]).concat([['me','Me, directly']]));
+  h+='<div class="actions"><button class="btn pri" data-act="commitDate" data-t="save">Save</button></div>';
+  return h;
+ },
+ move(M){
+  const d=dateInfo(M.did);
+  let h=head('Move Date '+d.n);
+  h+='<div class="sub">Now '+esc(fWhen(d.when))+'</div><div class="lbl">New time</div><div class="two"><input type="date" data-bind="_d" aria-label="Date" value="'+esc(M._d)+'"><input type="time" data-bind="_t" aria-label="Time" value="'+esc(M._t)+'"></div>';
+  h+='<div class="lbl">Who asked?</div>'+chips('by',M.by,[['girl','Her side'],['guy','My side']]);
+  h+='<div class="actions"><button class="btn pri" data-act="commitMove">Save</button></div>';
+  return h;
+ },
+ happened(M){
+  const d=dateInfo(M.did);
+  let h=head('Did Date '+d.n+' happen?');
+  h+='<div class="sub">'+esc(pairName(d.sid))+' · '+esc(fWhen(d.when))+(d.place?' · '+esc(d.place):'')+'</div>';
+  if(!M.no)h+='<div class="actions"><button class="btn pri" data-act="happenedYes" data-t="yes">Yes</button><button class="btn" data-act="set" data-arg="no=true">No</button></div><div class="note">Yes opens two quiet items: you owe '+esc(nm(goBetween(d.sid)[0]||'the shadchan'))+' your feedback, and you wait for hers.</div>';
+  else h+='<div class="actions"><button class="btn" data-act="move" data-arg="'+d.id+'">It was moved</button><button class="btn" data-act="cancelDate" data-arg="'+d.id+'">It was cancelled</button></div>';
+  return h;
+ },
+ feedback(M){
+  const d=dateInfo(M.did), gb=goBetween(d.sid)[0];
+  let h=head('Date '+d.n+' · how was it for you?');
+  h+=chips('val',M.val,[['continue','Continue'],['unsure','Unsure'],['stop','Stop']]);
+  h+='<textarea style="margin-top:10px" placeholder="Private note (only for you)" aria-label="Private note" data-bind="note">'+esc(M.note)+'</textarea>';
+  h+='<div class="actions">'+(gb?'<button class="btn pri" data-act="feedbackTell" data-t="tell"'+(M.val?'':' disabled')+'>Save and tell '+esc(nm(gb))+'</button>':'')+'<button class="btn" data-act="feedbackSave"'+(M.val?'':' disabled')+'>Save only</button></div>';
+  return h;
+ },
+ item(M){
+  const it=itemInfo(M.iid);
+  let h=head(it.kind==='waiting'?'Waiting on '+esc(nm(it.pid)):'You owe '+esc(nm(it.pid)));
+  h+='<p style="margin:0">'+esc(cap(it.what))+'</p><div class="sub">Since '+esc(fWhen(it.openedBy.at))+(it.sid?' · '+esc(pairName(it.sid)):'')+'</div>';
+  h+=contactRow(it.pid,false);
+  h+='<div class="actions">'+(it.sid?'<button class="btn" data-act="openShid" data-arg="'+it.sid+'">Open the shidduch</button>':'')+'<button class="btn" data-act="doneItem" data-arg="'+it.id+'">'+(it.kind==='waiting'?'Got it':'Mark done')+'</button></div><div class="note">'+(it.kind==='waiting'?'This usually closes by itself when '+esc(nm(it.pid))+"'s reply is filed.":'This usually closes by itself when you send it.')+'</div>';
+  return h;
+ },
+ waiting(M){
+  const ws=openItems(i=>i.pid===M.pid&&i.kind==='waiting');
+  let h=head('Waiting on '+esc(nm(M.pid)));
+  h+=ws.length?'<div class="props">'+ws.map(i=>'<div class="prop"><div class="main">'+esc(cap(i.what))+'<small>'+esc(waited(i.openedBy.at))+(i.purpose==='manual'?' · added by hand':'')+'</small></div><button class="btn sm" data-act="doneItem" data-arg="'+i.id+'">Got it</button></div>').join('')+'</div>':'<div class="note">Nothing is waiting on '+esc(nm(M.pid))+'.</div>';
+  h+='<div class="lbl">Add one by hand (for unusual cases)</div><input type="text" placeholder="What are you waiting for?" data-bind="what" value="'+esc(M.what||'')+'">';
+  const ss=shids().filter(s=>shidActive(s.id));
+  h+='<div class="lbl">About</div>'+chips('sid',M.sid||'',ss.map(s=>[s.id,nm(other(s.id))]).concat([['','Nothing specific']]));
+  h+='<div class="actions"><button class="btn pri" data-act="commitWaiting">Add</button></div>';
+  return h;
+ },
+ more(M){
+  const sid=M.sid;
+  let h=head('Pause or end · '+esc(nm(other(sid))));
+  h+='<div class="lbl">Pause until</div><input type="date" data-bind="_d" value="'+esc(M._d)+'">';
+  h+='<div class="actions"><button class="btn" data-act="commitPause">Pause</button></div>';
+  h+='<div class="lbl">End this round</div>'+chips('by',M.by,[['girl','Her side'],['guy','Me']]);
+  h+='<input type="text" style="margin-top:8px" placeholder="Why (private)" data-bind="why" value="'+esc(M.why||'')+'">';
+  h+='<div class="actions"><button class="btn" data-act="commitEnd">End round '+curRound(sid).n+'</button></div><div class="note">Both close every open item of this shidduch, with Undo.</div>';
+  return h;
+ },
+ entry(M){
+  const e=E(M.eid);
+  let h=head(esc(whoLine(e)),'Close');
+  h+='<div class="sub">'+esc(fWhen(e.at))+' · '+esc(CH[e.ch]||e.ch)+(e.prec==='received'?' · time it was shared in':'')+'</div>';
+  if(e.text)h+='<div class="orig" style="margin-top:8px"><div class="words">'+rich(e.text)+'</div>'+filesHtml(e.files)+(e.ver?'<div class="sub" style="margin-top:4px">Profile: '+esc(verLabel(e.ver))+'</div>':'')+'</div>';
+  const ch=e.c.map(c=>c.t==='item.open'?'Opened: '+itemLine(S.items[c.item.id]):c.t==='item.close'?'Closed: '+itemLine(S.items[c.iid]):changeText(c,e)).filter(Boolean);
+  if(ch.length)h+='<div class="lbl">What it changed</div><div class="props">'+ch.map(t=>'<div class="prop"><div class="main">'+esc(t)+'</div></div>').join('')+'</div>';
+  h+='<div class="actions"><button class="btn" data-act="deleteEntry" data-arg="'+e.id+'">Delete this entry</button></div><div class="note">Deleting it undoes everything it changed. Statuses always match the story.</div>';
+  return h;
+ },
+ paste(M){return head('Paste or type')+'<textarea placeholder="Paste a message here" data-bind="text" style="min-height:140px">'+esc(M.text||'')+'</textarea><div class="note">It is saved exactly as it is, with the time you pasted it. The real time can be set later.</div><div class="actions"><button class="btn pri" data-act="commitPaste">Save to Intake</button></div>';},
+ edit(M){const p=P(M.pid);return head('Edit '+esc(p.name))+'<div class="sub">Facts are edited directly. They are not ledger entries.</div><div class="lbl">Name</div><input type="text" data-bind="name" value="'+esc(M.name)+'"><div class="lbl">City</div><input type="text" data-bind="city" value="'+esc(M.city)+'"><div class="lbl">Phone</div><input type="text" data-bind="phone" value="'+esc(M.phone)+'"><div class="actions"><button class="btn pri" data-act="commitEdit">Save</button></div>';},
+ photo(M){return head(esc(nm(M.pid))+"'s photo",'Close')+'<div class="photo">Photo (made up)</div><div class="note">A girl\'s photo is shown only when you tap Photo.</div>';},
+ story(){
+  const i=S.story.i, st=STEPS[i];
+  let h=head('The story','Close');
+  h+='<div class="sub">Made-up clock: '+esc(fWhen(S.clock))+'</div>';
+  if(st){
+    h+='<div class="now" style="margin-top:8px"><div class="sub">'+(st.extra?'Extra step '+(i-MAIN+1)+' of '+(STEPS.length-MAIN):'Step '+(i+1)+' of '+MAIN)+'</div><div class="t">'+esc(st.title)+'</div><p>'+esc(st.text)+'</p><div class="btns" style="margin-top:10px">';
+    if(st.kind==='event')h+='<button class="btn pri" data-act="happen" data-t="happen">'+esc(S.story.happened[st.id]?'Open it again':st.btn)+'</button>';
+    else h+='<button class="btn pri" data-act="goStep" data-t="go">Take me there</button>';
+    h+='<button class="btn" data-act="autoStep" data-t="auto">Do it for me</button></div></div>';
+  }else h+='<div class="now" style="margin-top:8px"><div class="t">The whole story is done</div><p>Look around: Me ↔ Leah shows Round 2 on top and Round 1 below it. Behind the scenes shows every ID.</p></div>';
+  h+='<ul class="steps">'+STEPS.map((s,k)=>(k===MAIN?'</ul><div class="lbl">More of the story (optional)</div><ul class="steps">':'')+'<li class="'+(S.story.done[s.id]?'done':k===i?'cur':'')+'"><b>'+(S.story.done[s.id]?'✓':(s.extra?'+':(k+1)))+'</b><span>'+esc(s.title)+'</span></li>').join('')+'</ul>';
+  h+='<div class="btns" style="margin-top:12px"><button class="btn" data-act="ledger" data-t="ledger">Behind the scenes</button><button class="btn quiet" data-act="restart">Start over</button></div>';
+  return h;
+ }
+};
+
+/* ---------------- top-level render ---------------- */
+function render(){
+  dirty();
+  if(storyTick())save();
+  const st=STEPS[S.story.i];
+  $('#storybar').innerHTML='<button class="sb" data-act="story" data-t="storybar"><span class="n">'+(st?(st.extra?'Extra '+(S.story.i-MAIN+1)+'/'+(STEPS.length-MAIN):'Step '+(S.story.i+1)+'/'+MAIN):'Done')+'</span><span class="t">'+esc(st?st.title:'The story is complete')+'</span><span class="c">'+esc(fWhen(S.clock))+' ›</span></button>';
+  const v=top();
+  const scr={home:homeScreen,shidduchim:shidListScreen,people:peopleScreen,intake:intakeScreen,shid:shidScreen,person:personScreen,date:dateScreen,ledger:ledgerScreen}[v.s];
+  $('#screen').innerHTML=scr(v);
+  const detail=['shid','person','date'].includes(v.s), tabbed=['home','shidduchim','people','intake'].includes(v.s);
+  const unf=S.entries.filter(e=>!e.filed&&!e.deleted).length;
+  const tabs=$('#tabs');tabs.hidden=!tabbed;
+  if(tabbed)tabs.innerHTML='<div class="in">'+[['home','Home'],['shidduchim','Shidduchim'],['people','People'],['intake','Intake']].map(([k,l])=>'<button data-act="goTab" data-arg="'+k+'" aria-current="'+(v.s===k?'page':'false')+'">'+l+(k==='intake'&&unf?'<span class="badge">'+unf+'</span>':'')+'</button>').join('')+'</div>';
+  const nb=$('#notebar');nb.hidden=!detail;
+  if(detail&&nb.dataset.for!==v.s+v.id){nb.dataset.for=v.s+v.id;nb.innerHTML='<div class="in"><input id="noteInput" type="text" placeholder="Note…" aria-label="Note" autocomplete="off"><button class="round" type="submit" aria-label="Save note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button></div>';}
+  if(SHEET)renderSheet();
+}
+
+/* ---------------- events ---------------- */
+function setPath(o,path,val){const ks=path.split('.');let x=o;for(let i=0;i<ks.length-1;i++){if(x[ks[i]]==null)x[ks[i]]={};x=x[ks[i]];}x[ks[ks.length-1]]=val;}
+const parse=v=>v==='true'?true:v==='false'?false:v;
+const ACT={
+ goTab:a=>goTab(a), back:()=>{NAV.pop();if(!NAV.length)NAV=[{s:'home'}];render();window.scrollTo(0,0);},
+ openShid:a=>openShid(a), shidTab:a=>{top().tab=a;render();}, openPerson:a=>{closeSheet(true);push({s:'person',id:a});}, openDate:a=>{closeSheet(true);push({s:'date',id:a});},
+ fold:a=>{S.ui.fold[a]=!S.ui.fold[a];save();render();},
+ introHide:()=>{S.ui.intro=false;save();render();},
+ story:()=>openSheet('story',{}), ledger:()=>{closeSheet(true);push({s:'ledger'});},
+ sheetClose:()=>closeSheet(),
+ set:a=>{const i=a.indexOf('=');const path=a.slice(0,i),val=parse(a.slice(i+1));const M=SHEET.model;setPath(M,path,val);
+   if(SHEET.type==='file'&&path==='what'&&val==='about'&&!M.sid){M.sid=defaultShidFor(M.from,true);}
+   if(SHEET.type==='file'&&path==='what'&&val==='idea')M.dup=findDup(M.name);
+   if(SHEET.type==='share'&&(path==='why'||path==='to')&&!M.textEdited){if(path==='to'&&P(val)&&P(val).roles.includes('friend')&&M.subject!=='me')M.why='opinion';M.text=shareText(M);}
+   renderSheet();},
+ addProp:a=>{const [base,k]=a.split('|');const M=SHEET.model;const sid=M.sid;const r=curRound(sid);const ds=datesOf(sid,r.id);let p;
+   if(k.startsWith('side:'))p={t:'side',side:k.slice(5),val:'yes'};
+   else if(k==='date.set')p={t:'date.set',when:S.clock+2*864e5,place:'',by:goBetween(sid)[0]||'me'};
+   else if(k==='date.move'){const d=ds.find(x=>x.status==='set');p={t:'date.move',did:d&&d.id,when:(d&&d.when)||S.clock,by:'girl'};}
+   else if(k==='date.fb'){const d=[...ds].reverse().find(x=>x.status==='happened');p={t:'date.fb',did:d&&d.id,side:theirSide(sid),val:'continue'};}
+   else if(k==='ask')p={t:'ask',purpose:'question',what:'an answer to a question'};
+   else if(k==='pause')p={t:'pause',until:S.clock+14*864e5,by:theirSide(sid)};
+   else if(k==='end')p={t:'end',by:theirSide(sid),why:''};
+   p.on=true;M[base].push(p);renderSheet();},
+ happen:()=>{const st=STEPS[S.story.i];S.story.happened[st.id]=true;closeSheet(true);happenOpen(st);},
+ goStep:()=>{const st=STEPS[S.story.i];closeSheet(true);st.go();},
+ autoStep:()=>{const st=STEPS[S.story.i];act(()=>{if(st.kind==='event'&&st.happen&&!tagged(st.tag)){st.happen();S.story.happened[st.id]=true;}if(st.auto)st.auto();else if(st.happen&&!tagged(st.tag))st.happen();},'Done for you: '+st.title);},
+ restart:()=>{const snap=JSON.stringify(S);seed();save();closeSheet(true);render();window.scrollTo(0,0);toast('Started over',()=>{S=JSON.parse(snap);dirty();save();render();});},
+ file:a=>openFiling(a),
+ commitFile:()=>{const F=SHEET.model;act(()=>commitFiling(F),'Filed');},
+ paste:()=>openSheet('paste',{text:''}),
+ commitPaste:()=>{const t=(SHEET.model.text||'').trim();if(!t)return;let id=null;act(()=>{id=record({filed:false,ch:'pasted',prec:'pasted',from:null,text:t}).id;},'Saved to the Intake folder');if(id)openFiling(id);},
+ shareProfile:a=>openSheet('share',defaultShare({subject:other(a),sid:a})),
+ sharePerson:a=>{const s=shids().find(x=>x.girl===a&&x.guy==='me'&&shidActive(x.id));openSheet('share',defaultShare({subject:a,sid:s?s.id:null}));},
+ shareMe:()=>openSheet('share',defaultShare({subject:'me'})),
+ commitShare:()=>{const M=SHEET.model;if(!M.to)return;act(()=>commitShare(M),'Recorded as sent to '+nm(M.to));},
+ commitCompose:()=>{const M=SHEET.model;act(()=>commitCompose(M),'Recorded as sent to '+nm(M.to));},
+ answer:a=>openSheet('answer',{sid:a,val:null}),
+ answerTell:()=>{const M=SHEET.model;if(!M.val)return;const gb=goBetween(M.sid)[0];openSheet('compose',defaultCompose({to:gb,sid:M.sid,props:[{t:'side',side:mySide(M.sid),val:M.val}],text:ANS_TEXT[M.val],title:'Tell '+nm(gb)}));},
+ answerSave:()=>{const M=SHEET.model;if(!M.val)return;act(()=>commitAnswer(M.sid,M.val),'Saved your answer');},
+ item:a=>{const it=itemInfo(a);if(!it)return;
+   if(it.kind==='owe'){
+     if(it.purpose==='answer'&&it.sid){openSheet('answer',{sid:it.sid,val:null});return;}
+     if(it.purpose==='thing'){openSheet('share',defaultShare({subject:'me',to:it.pid,why:'just',forItems:[it.id]}));return;}
+     if(it.purpose==='feedback'&&it.did){const d=dateInfo(it.did);if(!d.fb[mySide(d.sid)]){openSheet('feedback',{did:it.did,val:null,note:''});return;}openSheet('compose',defaultCompose({to:it.pid,sid:it.sid,forItems:[it.id],text:FB_TEXT[d.fb[mySide(d.sid)].val]||'',title:'Tell '+nm(it.pid)}));return;}
+     if(it.purpose==='call'){ACT.call(it.pid);return;}
+     openSheet('compose',defaultCompose({to:it.pid,sid:it.sid,forItems:[it.id],text:'',title:'Reply to '+nm(it.pid)}));return;
+   }
+   openSheet('item',{iid:a});},
+ doneItem:a=>act(()=>commitDone(a),'Marked done'),
+ happened:a=>openSheet('happened',{did:a,no:false}),
+ happenedYes:()=>{const M=SHEET.model;act(()=>markHappened(M.did),'Date marked as happened');},
+ feedback:a=>openSheet('feedback',{did:a,val:null,note:''}),
+ feedbackSave:()=>{const M=SHEET.model;if(!M.val)return;act(()=>commitFeedback(M.did,M.val,M.note),'Saved your feedback');},
+ feedbackTell:()=>{const M=SHEET.model;if(!M.val)return;const snap=JSON.stringify(S);commitFeedback(M.did,M.val,M.note);dirty();save();const d=dateInfo(M.did);const it=openItems(i=>i.kind==='owe'&&i.purpose==='feedback'&&i.did===M.did)[0];
+   SHEET=null;openSheet('compose',defaultCompose({to:it?it.pid:goBetween(d.sid)[0],sid:d.sid,forItems:it?[it.id]:[],text:FB_TEXT[M.val],title:'Tell '+nm(it?it.pid:goBetween(d.sid)[0])}));render();toast('Saved your feedback',()=>{S=JSON.parse(snap);dirty();save();closeSheet(true);render();});},
+ setDate:a=>{const sid=a;const n=nextDateN(sid,curRound(sid).id);const base=n===2&&leahSid()===sid?T(2026,8,27,20,0):sod(S.clock)+2*864e5+20*36e5;openSheet('dateForm',{sid,_d:dInput(base),_t:fTime(base),place:n===2&&leahSid()===sid?'Café in town':'',by:goBetween(sid)[0]&&n===1?goBetween(sid)[0]:'me'});},
+ commitDate:()=>{const M=SHEET.model;act(()=>commitDate(M.sid,fromInputs(M._d,M._t),M.place,M.by),'Date set');},
+ move:a=>{const d=dateInfo(a);openSheet('move',{did:a,_d:dInput(d.when),_t:fTime(d.when),by:'girl'});},
+ commitMove:()=>{const M=SHEET.model;act(()=>commitMove(M.did,fromInputs(M._d,M._t),M.by),'Date moved');},
+ cancelDate:a=>act(()=>commitCancel(a,'girl'),'Date cancelled'),
+ more:a=>openSheet('more',{sid:a,_d:dInput(S.clock+14*864e5),by:'girl',why:''}),
+ commitPause:()=>{const M=SHEET.model;const sid=M.sid;act(()=>{const p={t:'pause',until:fromInputs(M._d,'12:00'),by:M.by};const cl=closeMatches({dir:'out',who:null,sid,props:[p]});const rid=curRound(sid).id;noteEntry(sid,'Paused until '+fShort(p.until),propChanges(p,sid,rid,goBetween(sid)[0]).concat(cl.map(iid=>({t:'item.close',iid}))));},'Paused');},
+ commitEnd:()=>{const M=SHEET.model;const sid=M.sid;act(()=>{const p={t:'end',by:M.by,why:M.why};const cl=closeMatches({dir:'out',who:null,sid,props:[p]});const rid=curRound(sid).id;noteEntry(sid,'Round ended',propChanges(p,sid,rid,null).concat(cl.map(iid=>({t:'item.close',iid}))));},'Round ended');},
+ call:a=>{toast('Calling '+nm(a)+'… (prototype: no call is made)');openSheet('call',defaultCall(a,{dir:'out'}));},
+ useWords:()=>{SHEET.model.note=SHEET.model.suggest;renderSheet();},
+ commitCall:()=>{const M=SHEET.model;act(()=>commitCall(M),'Status update saved');},
+ msg:a=>{const [pid,ch]=a.split('|');const sid=defaultShidFor(pid);openSheet('compose',defaultCompose({to:pid,sid:sid&&openItems(i=>i.pid===pid&&i.sid===sid).length?sid:null,ch,text:'',title:(CH[ch])+' '+nm(pid)}));},
+ waiting:a=>openSheet('waiting',{pid:a,what:'',sid:''}),
+ commitWaiting:()=>{const M=SHEET.model;if(!(M.what||'').trim())return;act(()=>commitWaiting(M.pid,M.what.trim(),M.sid||null),'Waiting added');},
+ callDue:a=>{const [pid,k]=a.split('|');act(()=>commitCallDue(pid,k==='x'?null:sod(S.clock)+(+k)*864e5+12*36e5),k==='x'?'Call due cleared':'Call due set');},
+ entry:a=>openSheet('entry',{eid:a}),
+ deleteEntry:a=>{act(()=>{const e=E(a);e.deleted=S.clock;},'Entry deleted. Everything it changed is undone');},
+ edit:a=>{const p=P(a);openSheet('edit',{pid:a,name:p.name,city:p.city||'',phone:(p.phones[0]||{}).n||''});},
+ commitEdit:()=>{const M=SHEET.model;act(()=>{const p=P(M.pid);p.name=M.name.trim()||p.name;p.city=M.city.trim();if(M.phone.trim()){if(p.phones[0])p.phones[0].n=M.phone.trim();else p.phones.push({label:'Mobile',n:M.phone.trim()});}},'Saved');},
+ photo:a=>openSheet('photo',{pid:a})
+};
+document.addEventListener('click',ev=>{
+  const t=ev.target.closest('[data-act]'); if(!t||t.disabled)return;
+  if(t.tagName==='SUMMARY')return;
+  const fn=ACT[t.dataset.act]; if(!fn)return;
+  ev.preventDefault(); fn(t.dataset.arg,t);
+});
+document.addEventListener('input',ev=>{
+  const t=ev.target; if(!SHEET||!t.dataset||!t.dataset.bind)return;
+  setPath(SHEET.model,t.dataset.bind,t.value);
+  if(t.dataset.edit)SHEET.model.textEdited=true;
+  if(t.dataset.dup&&SHEET.type==='file'){SHEET.model.dup=findDup(t.value);}
+});
+document.addEventListener('change',ev=>{const t=ev.target;if(SHEET&&t.dataset&&t.dataset.bind&&(t.type==='date'||t.type==='time'))renderSheet();if(SHEET&&t.dataset&&t.dataset.dup)renderSheet();});
+$('#notebar').addEventListener('submit',ev=>{ev.preventDefault();const inp=$('#noteInput');const text=inp.value.trim();if(!text)return;const v=top();act(()=>commitNote(v.s==='date'?{did:v.id}:v.s==='shid'?{sid:v.id}:{pid:v.id},text),'Note saved');const i2=$('#noteInput');if(i2)i2.value='';});
+
+/* ---------------- start ---------------- */
+S=load(); if(!S)seed(); dirty(); storyTick(); save(); render();
+window.__proto={get S(){return S;},STEPS,dateInfo,itemInfo,items,openItems,stageInfo,sideInfo,leahSid,roundsOf,curRound,roundInfo,whoHas,nextInfo};
+})();
+</script>
