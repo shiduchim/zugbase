@@ -39,6 +39,20 @@ never change their live sites.**
    anything else.
 5. `docs/ENGINE_NOTES.md` — engine pointers: what to build and how, with the ZivugBase files that
    already solve each part.
+6. `docs/SHIDDUCH_LOGIC.md` — how the information fits together. It covers:
+   - the real shidduch process
+   - what the five attempts got right and wrong
+   - three competing architectures, a worked example and stress tests
+   - a recommendation
+
+   **It is a proposal until the owner chooses.** Check the owner's answers to its section 11
+   before building on it.
+
+**Past attempts, read-only like the two above:**
+
+- `shiduchim/zugmatch`: PeerMatch rebuilt in clean plain JS, with the same data model.
+- `shiduchim/testmatch`: a design lab with four mock views of one shidduch.
+- zugbase's own earlier builds, live at `shiduchim.github.io/zugbase/`.
 
 ### Your own design — this is what the owner wants to see
 
