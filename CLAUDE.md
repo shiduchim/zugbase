@@ -39,20 +39,24 @@ never change their live sites.**
    anything else.
 5. `docs/ENGINE_NOTES.md` — engine pointers: what to build and how, with the ZivugBase files that
    already solve each part.
-6. `docs/SHIDDUCH_LOGIC.md` — how the information fits together. It covers:
+6. **`docs/ARCHITECTURE.md`: the decided architecture.** This is the design to build on. It covers:
+   - one ledger, and permanent IDs for sources, ideas, shidduchim, rounds, dates and open items
+   - the tabs: Recent · Guys · Girls · Shadchanim · Shidduchim
+   - "Waiting on them" and "Waiting on me"
+   - Single Mode and Shadchan Mode
+   - the Warm Modern Dashboard look
+   - the plan for the next prototype
+
+   It wins over the two documents below. Check its section 14 for the questions still open.
+7. `docs/SHIDDUCH_LOGIC.md`: the research behind it:
    - the real shidduch process
    - what the five attempts got right and wrong
-   - three competing architectures, a worked example and stress tests
-   - a recommendation
-
-   **It is a proposal until the owner chooses.** Check the owner's answers to its section 11
-   before building on it.
-7. `docs/PEOPLE_AND_SOURCES.md`: one record per person at scale. It covers:
-   - 100+ shadchanim, repeated meetings, referrals and lists
+   - three competing architectures, with stress tests
+8. `docs/PEOPLE_AND_SOURCES.md`: the reasoning for:
+   - one record per person at scale
+   - every source kept (meetings, referrals, lists)
    - profiles that aren't for me
-   - Single Mode and Shadchan Mode
-
-   **A proposal:** check the owner's answers to its section 17.
+   - the two modes
 
 **Past attempts, read-only like the two above:**
 

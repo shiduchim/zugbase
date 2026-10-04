@@ -11,7 +11,20 @@ decided) for these cases:
 
 **Every name and number in it is made up.**
 
-**Status: a proposal.** Section 17 lists the decisions for the owner.
+**Status: decided in part.** `docs/ARCHITECTURE.md` (2026-10-04) records the owner's decisions.
+It wins where this document differs. This one keeps the reasoning and the stress tests. Changed
+since the first version:
+
+- **"Waiting" and "You owe"** are now **"Waiting on them"** and **"Waiting on me"**.
+- **A profile arriving for me no longer creates a shidduch.** It's an **idea** first. "Not
+  applicable" closes the idea, and "Interested" creates the shidduch (sections 13 and 16,
+  rewritten).
+- **The tabs are now Recent · Guys · Girls · Shadchanim · Shidduchim**, in both modes
+  (section 15, rewritten).
+- **Shadchanim views** are All · Waiting on them · Waiting on me · Needs contact · Sources. Lists
+  of shadchanim live under Sources.
+- **Person types** are Guys, Girls, Shadchanim and References. Parents and friends have no list
+  of their own.
 
 **Contents**
 
@@ -52,8 +65,8 @@ decided) for these cases:
   shadchanim is one ID that 50 normal person records point to. It never holds copies of them.
 - **"Has my profile", "first met", "last contact", "no reply" and "needs contact" are never
   stored.** They're worked out from the ledger, so they can't drift.
-- **"Not for me" is not a field.** It's the state of my own shidduch with her:
-  - an ended Me ↔ Leah, or none at all
+- **"Not applicable for me" is not a field.** It's how I answered the idea of Me ↔ Leah:
+  - no shidduch is created
   - Leah's person record stays forever, whole
   - Single Mode hides her from everyday screens; Shadchan Mode shows her
 - **Modes change what you see, never the data.**
@@ -88,7 +101,7 @@ decided) for these cases:
            ▼            ▼
    worked out:      worked out:
    how I know them  has my profile
-   last contact     waiting, I owe
+   last contact     on them, on me
    list totals      not for me
            │
            ▼
@@ -307,7 +320,7 @@ Miriam is already here
  Mar 10 (Shadchanim day)
  Rivka's list, Jun 8
  Last call Aug 21 · has v2 (old)
- Waiting on her: 1 · You owe her: 1
+ Waiting on them: 1 · Waiting on me: 1
  2 active shidduchim
 Same person?             [Yes] [No]
 Adds: Sarah recommended her, Sep 20
@@ -330,12 +343,12 @@ It uses the zoom levels you approved. This is the **Details** level:
 ```
 Shadchanim · 112              − +
 [ Search name, phone, city…     ]
- Waiting 6 · You owe 3 · New 18
- No reply 9 · Old profile 14 ›
+ Waiting on them 6 · Waiting on me 3
+ Needs contact 18 · Sources ›
 Sort: last contact ▾ · Group: none ▾
 ──────────────────────────────────
  Miriam · Jerusalem          3 d
-  Waiting · You owe · 2 active
+  on them · on me · 2 active
   has v2 (old) · 5 sources
  Batya · Beit Shemesh       2 mo
   no reply since Sep 2 · has v3
@@ -347,7 +360,7 @@ Sort: last contact ▾ · Group: none ▾
 The **Names** level is one line each:
 
 ```
- Miriam            Waiting   3 d
+ Miriam            on them   3 d
  Batya                      2 mo
  Dina              new
 ```
@@ -360,8 +373,8 @@ Each chip filters the list. Tap a chip again to clear it.
 
 | Filter | Meaning |
 |---|---|
-| Waiting | an open item: I'm waiting on them |
-| You owe | an open item: I owe them |
+| Waiting on them | an open item: I've done my part, and I'm waiting for them |
+| Waiting on me | an open item: they've done their part, and I need to act |
 | Calls due | a Call due on them, today or overdue |
 | No reply | I sent something, and nothing has come back |
 | Needs contact | never contacted, or a list follow-up is due |
@@ -405,9 +418,9 @@ Everything you asked for is at the top, one line each. Each line taps through to
    Jerusalem · shadchan     [Edit]
    052-000-7777
  Call · Email · WhatsApp · SMS · Waiting
- Waiting on her  Leah's feedback,
+ Waiting on them Leah's feedback,
                  Date 1 · 3 days
- You owe her     your parents' names
+ Waiting on me   your parents' names
  My profile      has v2 (old) · Jun 14
                  [Send v3]
  Shidduchim      Me ↔ Leah · dating
@@ -475,7 +488,7 @@ This is the same pattern as dates and open items in `SHIDDUCH_LOGIC.md`.
 | Has my profile, and which version | nothing: worked out from my sent entries | a flag or a section |
 | Involved in Daniel ↔ Leah | the shidduch's go-betweens, and the entries she's part of | a field on Miriam |
 | First met, last contact | nothing: worked out | fields |
-| Waiting on her, I owe her, calls due | open items, each with its own ID | a Waiting switch |
+| Waiting on them, waiting on me, calls due | open items, each with its own ID | a Waiting switch |
 | Miriam is Leah's aunt | a link | anything else |
 | Her phone, city, notes | facts on her record, edited directly | entries |
 
@@ -498,7 +511,8 @@ In between:
 - I sent her my profile v2 (Mar 11, 2026).
 - I called her four times.
 - She's the go-between in Me ↔ Leah and in Daniel ↔ Shira.
-- On one day, I'm waiting on her for Leah's feedback **and** I owe her my parents' names.
+- On one day, I'm waiting on her for Leah's feedback (waiting on them) **and** she's waiting for
+  my parents' names (waiting on me).
 
 **What exists underneath**
 
@@ -520,9 +534,10 @@ Entries e1  met: p17 at S1 (new)
         e30 Chana's cards → referral
             p17 (card 6), new phone
         + 4 calls, messages, notes
-Items   o41 waiting on p17: Leah's
-            feedback on Date 1
-        o44 I owe p17: parents' names
+Items   o41 waiting on them (p17):
+            Leah's feedback, Date 1
+        o44 waiting on me (p17):
+            parents' names
 Shid.   s5 Me ↔ Leah (go-between p17)
         s9 Daniel ↔ Shira (p17)
 ```
@@ -536,7 +551,7 @@ contact". Each one is worked out from the lines above.
 - one line per item at the top
 - "How I know her" with five lines
 
-In the shadchan list she is one row: "Miriam · Waiting · You owe · 2 active · has v2 (old) ·
+In the shadchan list she is one row: "Miriam · on them · on me · 2 active · has v2 (old) ·
 5 sources".
 
 **The mistake test.** Suppose that in June her list line had no number, and "Mrs. Miriam K." was
@@ -551,43 +566,45 @@ made by mistake. In February, Chana's card carries the number that is on Miriam'
 
 ## 13. A profile that isn't for me
 
-**Case 1.** Miriam sends me Leah's profile, and I decide quickly: not for me.
+*Rewritten for the decided rule: a shidduch exists only for a real pairing (`ARCHITECTURE.md`
+section 5).*
+
+**Case 1.** Miriam sends me Leah's profile, and I decide quickly: not applicable for me.
 
 **How it's stored.** The one arrival entry holds two separate facts:
 
 1. **How Leah came to me:** "Referred: Leah, by Miriam, with her profile". This belongs to
-   **Leah's person record**, forever, whatever happens next.
-2. **A suggestion for me:** "Suggested: Me ↔ Leah, by Miriam". This belongs to **my shidduch
-   with her**.
+   **Leah's person record**, forever.
+2. **An idea for me:** "Idea: Me ↔ Leah, suggested by Miriam", with a permanent ID. **It is not a
+   shidduch.**
 
-My "not for me" is **my side's answer in that shidduch**: No, with the reason "not for me" and
-an optional private note. That answer ends my round.
+**My answer closes the idea.**
 
-- Miriam still gets a quiet "I owe Miriam an answer" until I tell her, unless I pick "no reply
-  needed".
-- Leah's record, her profile versions, her photos and files, and how she came to me all stay
-  untouched.
+- I tap **Not applicable** (with an optional private reason).
+- **No shidduch is created.**
+- Miriam still gets a quiet "waiting on me: answer Miriam", unless I choose "No reply needed".
+- Leah's record, her profile versions, her photos and files, who sent her, her sources and her
+  History all stay untouched.
+
+**If I had tapped Interested,** the shidduch Me ↔ Leah would have been created at that moment.
+The app would then propose linking the earlier entries to it: the arrival, and any opinion I
+asked for.
 
 **"Relevance to me" is worked out, not typed:**
 
 | Leah's state | Worked out from |
 |---|---|
-| for me, active | Me ↔ Leah, current round open |
-| not for me (I said no) | Me ↔ Leah ended by me |
-| she declined me | Me ↔ Leah ended by her side |
-| never suggested to me | no Me ↔ Leah at all (a profile kept for friends) |
-
-A separate stored "relevance" field would be a second copy of the shidduch's state, and the two
-could disagree. If I reconsider later, the same shidduch reopens as Round 2.
+| idea for me, undecided | an open Me ↔ Leah idea |
+| not applicable for me | the idea, closed as not applicable |
+| my active shidduch | Me ↔ Leah, current round active |
+| ended (I said no, or she declined) | Me ↔ Leah, current round ended |
+| never suggested to me | nothing involving me (a profile kept for friends) |
 
 **What I see:**
 
-- **Single Mode:** Leah is gone from everyday screens: Home, my shidduchim, Ideas for me. My
-  ended shidduch shows only under "Previous". Search still finds her, marked "not for me · from
-  Miriam, Aug 3".
-- **Shadchan Mode:** she is a normal girl in the Girls list, with all her details.
-
----
+- **Single Mode:** Leah is gone from everyday browsing (Recent's focus, Girls → For me). Search
+  still finds her, marked "not applicable · from Miriam, Aug 3".
+- **Shadchan Mode:** she is a normal girl in the Girls tab, with all her details.
 
 ## 14. She declined, and later David ↔ Leah
 
@@ -630,36 +647,35 @@ dates, open items and History.
 
 ## 15. Single Mode and Shadchan Mode
 
-**One database and one ledger.** A mode is a setting that changes which tabs, lists, filters and
-Home lines you see. It never changes or copies data.
+*Rewritten for the decided navigation (`ARCHITECTURE.md`, sections 8 and 9).*
 
-| | Single Mode | Shadchan Mode |
+**One database and one ledger.** A mode is a setting. It changes which view each tab opens on, and
+what comes first. It never changes, moves or copies data.
+
+**The tabs are the same in both modes:** Recent · Guys · Girls · Shadchanim · Shidduchim.
+
+| Tab | Single Mode | Shadchan Mode |
 |---|---|---|
-| Tabs (approved) | Home · Shadchanim | Home · Shadchanim · Guys · Girls, plus a generated **Shidduchim** view |
-| Home | my profile, and who has which version · outstanding for my shidduchim and my network · my dates · calls due · recent | everything outstanding, across all shidduchim · dates · calls due |
-| Singles | only the ones in my active shidduchim; "Previous" for ended ones | every guy and girl, including "not for me" ones |
-| Shidduchim | mine (Me ↔ X) | all, mine included, with mine marked private |
-| Shadchanim list | sorted for my search: has my profile, old profile, no reply | the same list, sorted for helping others |
+| Recent | what concerns me and my network; other people's shidduchim as one quiet line | everything |
+| Guys | the guys I help, if any | all guys |
+| Girls | For me (open ideas and my shidduchim) · Previous | all girls, including "not applicable for me" |
+| Shadchanim | All · Waiting on them · Waiting on me · Needs contact · Sources | the same |
+| Shidduchim | mine: Active · Ideas · Ended | all, with mine marked private |
 | Search | everyone; mine first | everyone |
-| Make match | hidden | in the header |
-
-Things outstanding for other people's shidduchim don't clutter Single Mode's Home. They show
-there as one quiet line, "3 open in Shadchan Mode".
-
----
+| Make match | hidden | on the Shidduchim tab and on a single's page |
 
 ## 16. Stress test: Leah from "not for me" to David ↔ Leah
 
 | Step | What happens | Underneath | On the phone |
 |---|---|---|---|
-| 1 | Miriam sends Leah | entry e1: Leah's record and profile v1 · referral by Miriam · Me ↔ Leah suggested · I owe Miriam an answer | Intake → "Idea for me" → saved |
-| 2 | Not for me | entry e2: my side No, "not for me" · Round 1 ends · the answer item closes when I tell Miriam | one tap, then "Tell Miriam" |
-| 3 | Gone from Single Mode | nothing changes underneath | Leah is under "Previous" only; search finds her |
+| 1 | Miriam sends Leah | entry e1: Leah's record and profile v1 · referral by Miriam · **idea** Me ↔ Leah · waiting on me: answer Miriam | Intake → "Idea for me" → saved |
+| 2 | Not applicable | entry e2: the idea closes as not applicable · **no shidduch is created** · the answer item closes when I tell Miriam | one tap, then "Tell Miriam" |
+| 3 | Gone from Single Mode | nothing changes underneath | Leah isn't in Girls → For me; search finds her |
 | 4 | Six months later, Shadchan Mode | nothing changes underneath | the Girls tab shows Leah, with all her details |
 | 5 | Looking for a girl for David | — | search or filter the Girls list: Leah appears |
-| 6 | She's still there | the same record, p23 | her page: "From Miriam, Aug 3" · profile v1 · my old shidduch, folded |
+| 6 | She's still there | the same record, p23 | her page: "From Miriam, Aug 3" · profile v1 · my closed idea, folded and private |
 | 7 | David ↔ Leah | entry e40: a new shidduch s40 (David ↔ Leah), suggested by me, go-betweens from her links | Make match → its own page, starting empty |
-| 8 | Kept apart | s40's entries are only its own; outgoing messages are built from profile v1 only | David ↔ Leah shows nothing from Me ↔ Leah; Leah's page keeps both, with mine folded |
+| 8 | Kept apart | s40's entries are only its own; outgoing messages are built from profile v1 only | David ↔ Leah shows nothing about my idea; Leah's page keeps both, with mine folded |
 
 ---
 
@@ -698,6 +714,9 @@ there as one quiet line, "3 open in Shadchan Mode".
    Calls pills. The filter chips in 8.2 are new, so they need your OK (question 4).
 
 ### Decisions for you
+
+*Partly answered on 2026-10-04: the Shadchanim views are decided, and Recent replaced Home. The
+questions still open are repeated in `ARCHITECTURE.md` section 14.*
 
 1. **Matching:** same phone or email counts as "certain, one tap to confirm", and same name only
    counts as "ask". Is that right?

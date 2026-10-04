@@ -11,6 +11,18 @@ attempts: PeerMatch, zugmatch, ZivugBase, zugbase and testmatch. **Every name in
 - A clickable prototype with made-up data, `prototype/shidduch-flow.html`, walks through a
   complicated shidduch on the phone (section 12).
 - The production app is not being built yet.
+- **Later decisions (2026-10-04) are recorded in `docs/ARCHITECTURE.md`, which wins where this
+  document differs.** The main changes:
+  - "You owe X" / "I owe X" now reads **"Waiting on me"**, and "Waiting on X" reads **"Waiting on
+    them"**.
+  - **A shidduch exists only for a real pairing.** A profile arriving for me is an **idea**
+    first. "Interested" creates the shidduch, and "Not applicable" closes the idea. The Leah
+    example in section 7 is updated to match.
+  - **Home is replaced by Recent.** The tabs are Recent · Guys · Girls · Shadchanim · Shidduchim,
+    in both modes.
+  - **The look is the Warm Modern Dashboard.** Presentation settings (theme, density, icon size,
+    dashboard layout) stay apart from the data.
+  - **The prototype in section 12 is paused,** and out of date with these decisions.
 - `docs/PEOPLE_AND_SOURCES.md` extends this design. It covers one record per person, every source
   kept (meetings, referrals, lists), profiles that aren't for me, and the two modes.
 
@@ -491,8 +503,10 @@ Aug 3   Miriam → Me · WhatsApp
         Leah's profile: PDF + photo
         New people: Leah; Rachel (her
         mother); Rabbi Yosef (reference)
-        New shidduch: Me ↔ Leah
-        Opens: I owe Miriam my answer
+        Idea for me: Me ↔ Leah
+        (not a shidduch yet)
+        Opens: waiting on me, answer
+        Miriam
 
 Aug 4   Me → Moshe · WhatsApp
         Leah's PDF (version 1)
@@ -509,6 +523,9 @@ Aug 6   Me → Rabbi Yosef · call
 Aug 9   Me → Miriam · WhatsApp
         "Yes, interested. Would she
         consider Tzfat?"
+        Interested: Shidduch Me ↔ Leah
+        starts; the Aug 3 and Aug 4
+        entries are linked to it
         My side: Yes
         Closes: my answer
         Opens: waiting on Miriam
@@ -1025,6 +1042,8 @@ contact person), or at your own answers.
 New idea → Checking → Waiting for her side (or his) → Setting up date 1 → Dating, after date N →
 Paused until … → Ended (by whom, why), or Engaged
 
+*Decided later: "New idea" is now an **idea**, recorded before any shidduch exists. A shidduch starts at "Interested" (`ARCHITECTURE.md` 5.2).*
+
 - "Thinking" and "unsure" keep the wait open.
 - "Yes" and "continue" move it on.
 - "No" and "stop" end it.
@@ -1069,7 +1088,7 @@ Me ↔ Leah
 
 ### 9.7 The screens (rough sketches, not the design)
 
-**Home**, on a made-up morning in single mode: My profile (approved), then one Today list.
+**Home**, on a made-up morning in single mode: My profile (approved), then one Today list. *(Superseded: **Recent** replaces Home; see `ARCHITECTURE.md` section 9.)*
 
 ```
 My profile · sent to 38 shadchanim
@@ -1233,8 +1252,8 @@ Call ended — add a status update?
 | Calls due for anyone | an open item: "I owe X a call" |
 | Memos | note entries shown on Home |
 | Home: recently added, backup, My profile and who has it | worked out from people and entries |
-| Suggested to me (Yes / No) | the switch for the Me ↔ her shidduch |
-| The Ideas for me folder | the girls I have a shidduch with, each showing its stage |
+| Suggested to me (Yes / No) | an **idea** for me: open, not applicable, or interested (which creates the shidduch). See `ARCHITECTURE.md` 5.2 |
+| The Ideas for me folder | Girls → For me, and Shidduchim → Ideas |
 | Shidduchim in shadchan mode (decided) | shown next to Guys and Girls, but it's a view generated from the shidduch records, not a folder of people |
 | Modes, I am | the same data; only which lists show changes |
 | Phones, email, age, looking for, how well I know them… | person facts |
@@ -1296,7 +1315,8 @@ Call ended — add a status update?
 6. **ENGINE_NOTES puts `nextStep` and `waitingSince` on the person.**
    - Open items replace both fields. The buttons stay.
 7. **"Suggested to me" and the "Ideas for me" folder are approved.**
-   - They become the switch and the list for your own shidduchim, so they keep working as approved.
+   - Decided later: they are **ideas** for me, which come before any shidduch (`ARCHITECTURE.md`
+     5.2).
 
 ---
 
@@ -1335,6 +1355,8 @@ The owner also set one UI rule and two data rules:
   just "the latest waiting item".
 
 ## 12. The clickable prototype
+
+**Paused.** The owner found it not good enough yet. It is out of date with `ARCHITECTURE.md`: it has a Home tab, uses "You owe", and creates a shidduch when a profile arrives. `ARCHITECTURE.md` section 13 defines the next prototype.
 
 `prototype/shidduch-flow.html` is one self-contained page with made-up data. It loads nothing
 from other sites, so it works offline and behind NetSpark. It is **not** the production app:
