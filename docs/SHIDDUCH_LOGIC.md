@@ -1356,7 +1356,7 @@ The owner also set one UI rule and two data rules:
 
 ## 12. The clickable prototype
 
-**Paused.** The owner found it not good enough yet. It is out of date with `ARCHITECTURE.md`: it has a Home tab, uses "You owe", and creates a shidduch when a profile arrives. `ARCHITECTURE.md` section 13 defines the next prototype.
+**Replaced.** Version 2, built from `ARCHITECTURE.md` section 13, is now at the same path. The text below describes version 1. The owner found it not good enough yet. It is out of date with `ARCHITECTURE.md`: it has a Home tab, uses "You owe", and creates a shidduch when a profile arrives. `ARCHITECTURE.md` section 13 defines the next prototype.
 
 `prototype/shidduch-flow.html` is one self-contained page with made-up data. It loads nothing
 from other sites, so it works offline and behind NetSpark. It is **not** the production app:

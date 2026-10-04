@@ -6,8 +6,8 @@ Design only, no code. Written 2026-10-04. It records the owner's decisions so fa
   something different, follow this one. Those two keep the research, the alternatives and the
   stress tests behind each decision.
 - **Every name and number is made up.**
-- **Not built yet.** A new clickable prototype comes first (section 13). The earlier prototype,
-  `prototype/shidduch-flow.html`, is paused and out of date.
+- **No production code yet.** The section 13 prototype (v2, 2026-10-04) is at
+  `prototype/shidduch-flow.html`. It replaced the paused first prototype at the same path.
 
 **Contents**
 
@@ -601,6 +601,12 @@ Planned for later. **These are presentation only.**
 ---
 
 ## 13. The first clickable prototype
+
+**Built:** `prototype/shidduch-flow.html`, version 2. It has every screen below, a 20-step story to
+click through ("It happens", "Show me", "Do it for me", "Skip"), and a Checks list for 13.2 that
+ticks itself from the data. Tested by real taps at 412 px, light and dark. One naming choice to
+confirm: the person-page tab is called **History** (the PeerMatch word), not the mockup's
+"Conversation".
 
 ### 13.1 The exact screens
 
